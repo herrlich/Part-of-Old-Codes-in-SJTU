@@ -1,0 +1,369 @@
+%%==================================================
+%% chapter03.tex for SJTU Bachelor Thesis
+%% version: 0.5.2
+%% Encoding: UTF-8
+%%==================================================
+
+% \bibliographystyle{sjtu2} %[此处用于每章都生产参考文献]
+
+\chapter{Algorithm Design}
+\label{chap:algorithm}
+
+Referring to the linear programming and rounding schemes given by predecessors, we can find a perfect solution to the naive LBMC problem in theoretical level. However, solving such a problem usually wastes a lot of time and thus is quite unrealistic in real time environments. And for this reason, it is very important to design some applicable heuristics for real world systems. So, in this chapter, we come up with both centralized and distributed algorithms for load balancing problems within the OpenFlow framework. We will first give the centralized version of the algorithm, since we believe it is easy to deploy and can achieve better performance. Then we will give the distributed version of the algorithm, which is also practical and effective for real applications.
+
+\vspace{-5pt}
+\section{Centralized Migration}
+Our scheme of centralized migration is devided into two parts. In the first part, we have to initialize the whole system. That is to say, we will give an initial mapping scheme for controllers and switches. Then after initialization, if the traffic in the network changes and make the system unbalanced, we will come to the second part and use our algorithm to re-balance the system, by moving switches from overload controllers to some idle controllers.
+
+\subsection{Centralized Initialization}
+Before the migration part, we need to initialize the whole system. We will allocate switches to one of their reachable controllers by our initialization scheme called CI-LBMC (Centralized Initialization of Load Balancing problem of Multiple Controllers). However, sometimes we will confront the situation where several controllers are logically equal to a certain switch. So we will first give a \emph{Selecting Scheme} to deal with this dilemma.
+
+\emph{Selecting Scheme:} (1) When we have to choose a switch $s_j$ from switch set $S$, we choose the one will the largest weight (the weight represents for the traffic). If several switches have the same weight, we choose the one with the smallest number of reachable controllers, i.e., we choose the one with the smallest $|RC(s_j)|$. If there are still several equal switches, we randomly choose a number, and then choose the switch whose sequence number is nearest to this one. (2) When we have to choose a controller $c_i$ from controller set $C$, we choose the one with the smallest weight. If several controllers have the same weight, we choose the one with the smallest number of actual switches $|AS(c_j)|$. Similarly, we will use a random number to decide if the tie still exists.
+
+The reason why we choose the switch with the smallest reachable controller number $|RS(s_j)|$ is that we have to make each controller carry similar traffic. Choose such switches will fasten our speed of establishing a mapping between controllers and switches. Meanwhile, even though we skip the initialization process, our migration schemes will manage to balance the system. So to save time and space, we only give the initialization scheme of naive centralized LBMC and distributed LBMC. The corresponding initialization algorithm for modified LBMC are similar to this one and are easy to think. So we will omit them here. 
+
+Then we show our algorithm of CI-LBMC as Alg.~\ref{Alg-CI}.
+\vspace{-4mm}
+\begin{algorithm}
+%\SetAlgoNoLine
+%\dontprintsemicolon
+%\SetNoline
+\caption{Centralized Initialization (CI-LBMC)} \label{Alg-CI}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+\Input{$S$ with $w(s_i)$; $C$ with $w(c_i)$;}
+\Output{The initial mapping scheme of $C$ and $S$}
+\BlankLine 
+%Compute $Avg_{last}=\sum w(c_i)/m$\;
+$IdleList$=\{$s_1$,$s_2$,$\cdots$,$s_n$\}\;
+\lnl{InRes1}\While{$IdleList \neq \emptyset$}{
+Pick $s_j$ from $IdleList$\;
+\eIf{$|RC(s_j)|=1$}{
+Allocate $s_j$ to the only controller $c$ in $RC(s_j)$\;
+Set $AC(s_j)$ to be $c$\;
+Add $s_j$ to $AS(c)$\;
+}
+{
+Allocate $s_j$ to the $c_i$ that has minimum $w(c_i)$ in $RC(s_j)$ \;
+Set $AC(s_j)$ to be $c_i$\;
+Add $s_j$ to $AS(c_i)$\;
+}
+Remove $s_j$ from $IdleList$\;
+}
+\end{algorithm}
+\vspace{-4mm}
+
+The initialization algorithm CI-LBMC is based on the idea of greedy algorithm. We have to search the $IdleList$ to establish the link between a controller and a switch. This process will take $O(n)$ time to run in the worst condition. For each switch chosen in the $IdleList$, the \emph{While} loop will have to be run for once, and this loop will take $O(n)$ time to execute, n is the larger one of the controller number and the switch number. Thus in the worst condition, this algorithm will have a time complexity of $O(n^2)$. And for space complexity, since we need to store the reachable and actual mapping relationship of controllers and switches, it will be better if we use matrices to store those information. Thus, the space complexity is $O(n^2)$.
+
+Thus we finish the initialization part, and for normal networks, this CI-LBMC algorithm should have a very good performance. However, since the traffic of the system changes as time passes, we have to come up with another algorithm to reallocate switches to controllers if the balance of this network breaks. To make it easy, we first start from the condition that controllers are all the same and have unlimited capacity, and all the switches are logically equal to controllers in their reachable controller set. Then we will give our naive migration algorithm, which is called the NCM-LBMC (naive centralized migration of LBMC).
+
+\subsection{Naive Centralized Migration}
+When the traffic of the whole network changes, we have to find a reference index to decide when we need to migrate the switches. Here we use a threshold to decide the load status of a controller. If the weight of this controller exceed the threshold, then we regard this controller as overloaded, which means its actual switches may be moved to other less-loaded controllers. On the other hand, if the load of this controller does not exceed its threshold, then its switches will not be moved away. In this condition, it may accept switches in its reachable switch set, from other overloaded controllers. From the research of the predecessors, we can notice that the traffic in a data center network is usually changing in a linear pattern. So we can refer to the definition of threshold in Round-Trip Time(RTT), and consider both the effect of current load and historical thresholds. And three parameters are needed, we denote them as $\alpha$, $\beta$ and $\gamma$. These three parameters are related to the characteristic of this data center network, and we have $0\le\alpha\le1$, $\beta > 1$ and $\gamma > 1$. In this algorithm, We will run NCM-LBMC periodically, and remap the whole system if the balance is broken. We denote the threshold and effluence that we will use in NCM-LBMC as $Thd$ and $Efn$, and use parameter $Thd_{last}$ and $Avg_{now}$ to denote the threshold of the last round and the average load of the current round respectively. $Thd$ and $Efn$ will both be used in the algorithm, for us to decide whether we need a migration and how to execute the migration. During each round, we will collect the information of the current system, and calculate the average load of each controller using $Avg_{now}=\Sigma w(s_j)/n$ or $Avg_{now}=\Sigma w(c_i)/m$.
+
+The threshold $Thd_{now}$ and the effluence $Efn$ can be computed as follows:
+\[Thd_{now}=\alpha \cdot Avg_{now} + (1-\alpha) \cdot Thd_{last},~ Efn=\beta \cdot Thd_{now}\]
+
+Our basic idea in NCM-LBMC is the greedy algorithm, i.e., we greedily move the switch with the maximum weight to the controller that has the minimum weight. In Alg.~\ref{Alg-CM}, we will show the naive version of our centralized LBMC migration.
+
+The naive version of CM-LBMC consists of five steps. In Step 1, we search the whole list, and find all controllers that exceed the effluence, then we add it to the OverList, in which we store the controllers that are overloaded, this step will take $O(n)$ time to run. Then in Step 2, the algorithm searches the $OverList$ to find the controller $c_k$ with maximum weight, which takes $O(n)$. Next, we move the switches from overloaded controllers that are in the $OverList$, to comparatively  controllers repeatedly. This step takes $O(n^2)$. To decrease the influence of coincidences, we use Step 3 that execute Step 2 for many times to make the $RepeatList$ stable. This step will take the time complexity of $O(n^3)$ in the worst case. In the following two steps, we start a local migrating process in each connected components, still using the idea of greedy algorithm, these steps will take at most $O(n^3)$ time in the worst case. Thus in NCM-LBMC, the whole time complexity is $O(n^3)$. As mentioned by predecessors, we can reduce the time complexity to $O(n^2)$ if we use a priority heap to store the lists. The space complexity we need is still $O(n^2)$ since it will share the same information as the initialization algorithm.
+
+\vspace{-4mm}
+\begin{algorithm}
+%\SetAlgoNoLine
+%\SetVline
+%\dontprintsemicolon
+%\SetKwIF{If}{ElseIf}{Else}{if}{then}{else if}{else}{endif}
+%\SetAlgoVline
+\SetKwInOut{Input}{Input}
+\Input{$S$ with $w(s_i)$; $C$ with $w(c_i)$; $OverList=RepeatList=\{\emptyset\}$;}
+\BlankLine
+
+\textbf{Step 1:}
+%Linear expectation:\\
+%$Thd=Avg_{now}\alpha + Avg_{last}(1-\alpha)$\;
+%$Efn=\beta \times Thd$\;
+If $w(c_i)>Efn$, add $c_i$ to $OverList$ \;
+%$PendList=OverList=\{\emptyset\}$\;
+\textbf{Step 2:}
+Search the $OverList$, and select $c_k$ with maximum weight\;
+\eIf{$\exists c_l\in AN(c_k)$ and $w(c_l)<Thd_{now}$}{
+\Repeat{$w(c_k)\le Thd_{now}$ or $w(c_s)\ge Thd_{now}$}{
+Pick $s_p$ of max weight in $AS(c_k)$, search $RC(s_p)$:\\
+\eIf{$\exists c_s \in RC(s_p)$ and $c_s\in AN(c_k)$ and $w(c_s)<Thd_{now}$}{
+Migrate $s_p$ to $c_s$\;
+Set $AC(s_p)$ to be $c_s$\;
+Add $s_p$ to $AS(c_s)$\;
+Remove $s_p$ from $AS(c_k)$\;
+}
+{Ignore the current $s_p$ in $c_k$\;}
+}
+if still $w(c_k)> Efn$, move $c_k$ to $RepeatList$;
+}
+{
+Move $c_k$ from $OverList$ to $RepeatList$;
+}
+
+\textbf{Step 3:}
+Repeatly execute Step 2 until $OverList=\{\emptyset\}$\;
+Let $OverList=RepeatList$, Repeat Step 2 for several times until $RepeatList$ become comparatively stable\;
+\textbf{Step4:}
+Now we treat $RepeatList$ as a graph, there are some connected components $CC_i(1\le i\le |CC|)$\;
+\For{each $CC_i\in CC$}{
+We denote $AN(CC_i)=\bigcup_{c_j\in CC_i}AN(c_j)$;
+Compute $Avg_{local}=\frac{w(CC_i)+AN(CC_i)}{|CC_i|+|AN(CC_i)|}$\;
+\If{$\exists c_j\in CC_i$: $w(c_j)> \gamma \cdot Avg_{local}$}{
+Migrate the $s_{max}\in AS(c_j)$ to $c_{min}\in AN(CC_i) \cup CC_i$ repeatedly until $w(c_j)\le \gamma\cdot Avg_{local}$\;
+remove $c_j\in CC_i$ from $RepeatList$\;
+}
+}
+\textbf{Step5:}
+Repeat Step 4 until $RepeatList$ become stable. Then stop the algorithm.
+
+\caption{Naive Centralized Migration (NCM-LBMC)}\label{Alg-CM}
+\end{algorithm}
+\vspace{-4mm}
+
+\subsection{Centralized Migration with Capacity Limits}
+
+In our naive version, we simply suppose that all controllers in this network have unlimited processing abilities. However, in real conditions, the performance of each controller will have its upper bound. So if we just use the naive version, though every controller will have almost the same traffic load after several rounds, some of them will work in an overloaded state. For example, let us consider the following condition: there are three controllers in the network system, say, $c_1$, $c_2$, $c_3$. The maximum capacity for $c_1$ is $\lambda$, for $c_2$ is 2$\lambda$ and for $c_3$ is 4$\lambda$. The total weight of all switches in this system is 6$\lambda$. If our NCM-LBMC program works perfectly, then each controller will get the load of 2$\lambda$ in the end. Thus, in this condition, $c_1$ works in an overloaded status, and will definitely become the bottleneck of the system. However, $c_3$ only makes use of 50\% of its maximum abilities. So in fact, the naive CM-LBMC algorithm only balances the value of load among devolved controllers, instead of balancing the performance of processing traffic load.
+
+Therefore, we have to consider the performance limit of each controller when we design a new centralized algorithm. We call this algorithm limited centralized migration of LBMC (LCM-LBMC). To reconfigure the system when it is unbalanced, we still need a threshold parameter and an effluence parameter for each controller. Since different controllers will have different value of these two parameters, we use two sets to store them, $ThdList$ = \{$Thd_1$,$\cdots$, $Thd_n$\} and $EfnList$ = \{$Efn_1$, $\cdots$, $Efn_n$\}. For a certain controller $c_i$, we use ${Des_{now}}^{i}$ to denote its deserved workload of the current sample round, and use ${Des_{last}}^{i}$ to denote the deserved workload of the last sample round. The threshold $Thd_i$ and effluence $Efn_i$ of controller $c_i$ is still computed as follows:
+\[Thd_i=\alpha{Des_{now}}^{i} + (1-\alpha){Des_{last}}^{i},~ Efn_i=\beta \times Thd_i\]
+
+The maximum load that controller $c_i$ can hold is denoted as $w_m(c_i)$, and we use $\epsilon$ to denote the percentage of resources to be used for each controller. And another thing to mention here is that we modify the definition of standard deviation in LCM-LBMC, defining $S = \sqrt{\frac{1}{m}\sum_{i=1}^{m} \left(\sum_{j=1}^n w(s_j)\cdot x_{ij}-{Des_{now}}^{i}\right)^2}$. We believe this reference index is more appropriate in this condition.
+
+Alg.~\ref{Alg-limitedCM} illustrates the LCM-LBMC algorithm.
+
+\vspace{-4mm}
+\begin{algorithm}
+%\SetAlgoNoLine
+%\SetVline
+%\dontprintsemicolon
+%\SetKwIF{If}{ElseIf}{Else}{if}{then}{else if}{else}{endif}
+%\SetAlgoVline
+\SetKwInOut{Input}{Input}
+\Input{$S$ with $w(s_j)$; $C$ with $w(c_i)$, $w_m(c_i)$; $OverList=RepeatList=\{\emptyset\}$;}
+\BlankLine
+
+\textbf{Step 1:}
+%Linear expectation:\\
+%$Thd=Avg_{now}\alpha + Avg_{last}(1-\alpha)$\;
+%$Efn=\beta \times Thd$\;
+Compute $\epsilon = \frac{\sum_{i=1}^{n} w'(s_i)}{\sum_{j=1}^{m} w_m(c_j)}$
+%$RepeatList=OverList=\{\emptyset\}$\;
+
+\textbf{Step 2:}
+Calculate the threshold and effluence for each controller;
+
+\For{each $c_i\in C$}{
+${Des_{now}}^{i} = \epsilon \times w_m(c_i)$\;
+Calculate $Thd_i$ and $Efn_i$} and save them in the list.
+
+\textbf{Step 3:}
+Add $c_i$ to $OverList$ if $w(c_i)>Efn_i$\;
+
+\textbf{Step 4:}
+Find $c_k$ with maximum load ratio $\frac{w(c_k)}{w_m(c_k)}$ in $OverList$\;
+\eIf{$\exists c_l\in AN(c_k): w(c_l)<Thd_l$}{
+\Repeat{$w(c_k)\le Thd_k$ or $w(c_s)\ge Thd_s$}{
+Pick $s_p$ of max weight in $c_k$, refer to $RC(s_p)$:\\
+\eIf{$\exists c_s\in AN(c_k)$ and $w(c_s)<Thd_s$}{
+Move $s_p$ to $c_s$\;
+Set $AC(s_p)$ to be $c_s$\;
+Add $s_p$ to $AS(c_s)$\;
+Remove $s_p$ from $AS(c_k)$\;}
+{Ignore the current $s_p$ in $c_k$\;}
+}
+if still $w(c_k)> Efn_k$, move $c_k$ to $RepeatList$;
+}
+{
+Move $c_k$ from $OverList$ to $RepeatList$;
+}
+
+\textbf{Step 5:}
+Repeat Step 4 until $OverList=\{\emptyset\}$\;
+Let $OverList=RepeatList$, Repeat Step 2 until $RepeatList$ become stable\;
+\textbf{Step 6:}
+Now we treat $RepeatList$ as a graph, there are some connected components $CC_i(1\le i\le |CC|)$\;
+\For{each $CC_i\in CC$}{
+We denote $AN(CC_i)=\bigcup_{c_j\in CC_i}AN(c_j)$;
+Compute $\epsilon_{local}=\frac{w'(CC_i\cup AN(CC_i))}{w_m(CC_i\cup AN(CC_i))}$\;
+\If{$\exists c_j\in CC_i$: $w(c_j)> \gamma \cdot \epsilon_{local} \cdot w_m(c_j)$}{
+Find $c_k$ with minimum load ratio $\frac{w(c_k)}{w_m(c_k)}$ in $AN(CC_i)$\;
+Migrate the $s_{max}\in AS(c_j)$ to $c_{k}$ repeatedly until $w(c_j)\le \gamma\cdot \epsilon_{local} \cdot w_m(c_j)$\;
+remove $c_j\in CC_i$ from $RepeatList$\;
+}
+}
+\textbf{Step 7:}
+Repeat Step 6 until $RepeatList$ becomes stable. Then stop the algorithm.
+
+
+\caption{Centralized Migration with Performance Limits (limited CM-LBMC)}\label{Alg-limitedCM}
+\end{algorithm}
+\vspace{-4mm}
+
+Limited CM-LBMC uses the current load ratio of each controller instead of the value of the current weight, to be the reference index of whether the devolved controllers are unbalanced. Thus, we only need to calculate the average percentage of resources utilized in the system, and migrating switches from the controllers that have a high percentages to those with low percentages. The time complexity is the same with naive CM-LBMC, which takes $O(n^3)$, and can be reduced to $O(n^2)$ if priority heap is used. For space complexity, we need to use several lists to store the following parameters: the weight of a switch, the current of a controller, the maximum capacity of a controller, the threshold and effluence of each controller, as well as the RepeatList and the OverList. Each of them requires a linear array to store, which takes $O(n)$. We also need two matrices to store the potential mapping and real mapping between controllers and switches, which takes $O(n^2)$. Thus, the space complexity is $O(n^2)$.
+
+\subsection{Centralized Migration with Switch Priority}
+
+Our scheme of limited CM-LBMC can work well in a comparative intense structure. That is to say, if the distance between a switch and all its potential controllers are close enough, so that migrating switch $s$ from controller $c_1$ to controller $c_2$ will not influence the processing speed of messages, then LCM-LBMC will have a good performance. However, in some distributed data centers that has a very sparse structure, it is better to attach a switch to its nearby controllers. Meanwhile, as we have mentioned, the performance of controllers in the network system may be very different. Some of the controllers may have strong computing capacities, and thus can process messages in a higher speed. In real network systems, sometimes we hope certain messages or certain areas can have a higher priority in the whole structure, and we want to allocate switches in this region to those strong controllers.
+
+Therefore, though for a certain switch $s_i$, it can be attached to any controller $c_j$ of its potential controller set $PC(s_i)$, the performance, or the value of the whole system may vary according to the real mapping strategy. If the value we get for $s_i$ monitored by $c_1$ is $\theta$, and for $s_i$ monitored by $c_2$ is 2$\theta$, then its better to distribute $s_i$ to $c_2$, if the current load of both controllers are below their thresholds. Thus we come up with CM-LBMC with switch priorities in this condition. In this scheme, each switch has a value list, which stores the value of each mapping between this switch and its potential controllers. We want to balance the traffic load of the network and make the whole value as large as possible. In CM-LBMC, we use $v_{ij}$ to denote the value that we can get by attaching switch $s_i$ to controller $c_j$. These values are stored in a matrix $Value$, and if $c_j$ is not in the potential controller set of $s_i$, then $v_{ij}$ = 0. And we also consider the maximum capacity of each controller as we did in LCM-LBMC.
+
+The implementation of this SPCM-LBMC (Switch-Priority-based CM-LBMC) algorithm is quite similar to limited CM-LBMC, except that we changed the migration scheme used in step 4 of LCM-LBMC. Meanwhile, in step 6, we also use the scheme similar to Alg.~\ref{Alg-valueCM}. The algorithm is presented in Alg.~\ref{Alg-valueCM}.
+
+In this scheme, we add the process of sorting the switch list according to the value matrix, which will take $O($log$n)$ if we use heap sorting. Thus the time complexity is $O(n^2$log$n)$ if we use a priority heap to store the RepeatList and the OverList. And the space complexity is still $O(n^2)$ since we need some matrices to store the value and the mapping relations.
+
+\vspace{-4mm}
+\begin{algorithm}
+%\SetAlgoNoLine
+%\SetVline
+%\dontprintsemicolon
+%\SetKwIF{If}{ElseIf}{Else}{if}{then}{else if}{else}{endif}
+%\SetAlgoVline
+\SetKwInOut{Input}{Input}
+\Input{$S$ with $w'(s_i)$; $C$ with $w'(c_i)$, $w_m(c_i)$; $RepeatList=OverList=\{\emptyset\}$; $Value$ with $v_{ij}$;}
+\BlankLine
+
+\textbf{Step 1:}
+%Linear expectation:\\
+%$Thd=Avg_{now}\alpha + Avg_{last}(1-\alpha)$\;
+%$Efn=\beta \times Thd$\;
+Compute $\epsilon = \frac{\sum_{i=1}^{n} w'(s_i)}{\sum_{j=1}^{m} w_m(c_j)}$
+%$PendList=OverList=\{\emptyset\}$\;
+
+\textbf{Step 2:}
+Calculate the threshold and effluence for each controller as in limited CM-LBMC;
+
+%\For{each $c_i\in C$}{
+%${Des_{now}}^{i} = \epsilon \times w_m(c_i)$
+%$Thd_i=\alpha{Des_{now}}^{i} + (1-\alpha){Des_{last}}^{i}$
+%$Efn_i=\beta \times Thd_i$}
+Save $Thd_i$ and $Efn_i$ in $ThdList$ and $EfnList$.
+
+\textbf{Step 3:}
+Add $c_i\rightarrow OverList$ if $w'(c_i)>Efn_i$\;
+
+\textbf{Step 4:}
+Find $c_m$ with maximum load ratio $\frac{w'(c_m)}{w_m(c_m)}$ in $OverList$\;
+\eIf{$\exists c_n\in AN(c_m): w'(c_n)<Thd_n$}{
+\Repeat{$w'(c_m)\le Thd_m$ or $w'(c_f)\ge Thd_f$}{
+\eIf{$\exists c_f\in AN(c_m)$ and $c_f \in RC(s_m)$ and $w'(c_f)<Thd_f$}{
+Sort $RS(c_m)$ from big to small order, according to the value of $v_{if}$, $s_i \in RS(c_m)$\;
+Pick $s_m$ of maximum value in $c_m$, if there are several switches with the same value, pick the one with maximum weight;\\
+Send $s_m\rightarrow c_f$\;}
+{Ignore the current $s_m$ in $c_m$\;}
+}
+if still $w'(c_m)> Efn_m$, move $c_m$ to $RepeatList$;
+}
+{
+Move $c_m$ from $OverList$ to $RepeatList$;
+}
+
+\textbf{Step 5:}
+Repeat Step 4 until $OverList=\{\emptyset\}$\;
+Let $OverList=RepeatList$, Repeat Step 2 until $RepeatList$ become stable\;
+\textbf{Step 6:}
+Now $RepeatList$ has several connected components $CC_i(1\le i\le |CC|)$\;
+\For{each $CC_i\in CC$}{
+Search the $\bigcup_{c_j\in CC_i}AN(c_j)$\;
+Compute $\epsilon_{local}=\frac{w'(CC_i\cup AN(CC_i))}{w_m(CC_i\cup AN(CC_i))}$\;
+\If{$w'(c_j)> \gamma \cdot \epsilon_{local} \cdot w_m(c_j)$, where $c_j\in CC_i$}{
+Find $c_k$ with minimum load ratio $\frac{w'(c_k)}{w_m(c_k)}$ in $AN(CC_i)$\;
+Migrate the $s_{maxvalue}\in AS(c_j)$ to $c_{k}$ repeatedly until $w'(c_j)\le \gamma\cdot \epsilon_{local} \cdot w_m(c_j)$\;
+remove $c_j\in CC_i$ from $RepeatList$\;
+}
+}
+\textbf{Step 7:}
+Repeat Step 6 until $RepeatList$ becomes stable.
+
+\caption{Centralized Migration with Performance Limits (CM-LBMC with switch priority)}\label{Alg-valueCM}
+\end{algorithm}
+\vspace{-4mm}
+
+\section{Distributed Migration}
+In real applications, it can be hard to deploy the centralized alogrithm, since sometimes the system will have trouble passing all information to all controllers. Thus, we need a new strategy to deal with this situation. A distributed algorithm can address this problem in an easy way. And as the centralized migrating scheme, the distributed version is also composed of two parts, the initialization part and the migration part.
+
+\textbf{Distributed Initialization:}
+Different from the centralized initialization, we do not allocate switches to their reachable controllers, but let the controller get their switches by sending signals. In the OpenFlow protocol. a controller can send a message to its reachable switches, and then establish a link between itself and the switch.
+
+In our initialization scheme, the controllers will send messages to all its reachable controllers. When the switch receives the message, it will send a message back to the controller. So it can be easy to decide which controller to be the master controller of a certain switch -- the first controller that this switch receives a signal from will be the master controller. This method appears to be quite casual, but it could show the condition of the whole system. If a switch $s_j$ receives the messages from controller $c_1$ first, then it means that the link between them is not very busy, and establishing a link between them can promise the performance of this system. And this initialization will take the time complexity of $O(n)$ since each controller will have to send messages to at most $n$ switches in the network, where $n$ is the number of all controllers in this system.
+
+Alg.~\ref{Alg-DI} shows our distributed initialization scheme.
+
+\vspace{-4mm}
+\begin{algorithm}
+
+%\SetAlgoNoLine
+For each controller $c_i$ in the network:
+
+Send "ROLE\_REQUEST" message to its reachable switch set $RS(c_i)$
+
+Each switch $s_j$ only reply the "ROLE\_REQUEST" message that comes first, with a message "Master", and reply to all the other messages with the message "Slave".
+
+Set $AC(s_j)$ to be $c_i$, and add $s_j$ to $AS(c_i)$.
+
+Proceed until none of the $AC(s_k)$ is empty for every switch $s_k$.
+\caption{Distributed Initialization (DI-LBMC)}\label{Alg-DI}
+\end{algorithm}
+\vspace{-4mm}
+
+
+After the initialization phase, we will begin our migration phase, which is shown in the distributed migration algorithm (DM-LBMC). When the balance of the system is broken, this algorithm will be executed to balance the traffic load.
+
+
+\textbf{Distributed Regional Balanced Migration:}
+In the migration part, each distributed controller will use a reference index to check its status. When it is overloaded, it will use the DM-LBMC scheme to rebalance the load. Since in the distributed version of our LBMC algorithm, a controller can never get the whole information of this network, the reference index is thus designed to be a local one instead of a global one. For each distributed controller, it will periodically calculate the average load of all its reachable controllers and itself. If the load of itself is beyond this average, then it will be regarded as overloaded. As the centralized version, we use a threshold and a effluence to better judge the status of each controller. The way to calculate them for a controller $c_i$ is as follows:
+
+\begin{align*}
+Avg&=\dfrac{\sum_{c_k\in AN(c_i)}w(c_k) + w(c_i)}{|AN(c_i)|+1}\\
+Thd_{now}&=\alpha \cdot Avg_{now}+ (1-\alpha) \cdot Thd_{last}\\
+Efn&=\beta \cdot Thd_{now}
+\end{align*}
+
+DM-LBMC compares the load of controllers regionally, and will move the switches of regionally overloaded ones to comparatively idle ones. By the work of predecessors, the correctness of this system is proved by analysing its termination, aggrement and validity. The distributed migration scheme is presented in Alg.~\ref{Alg-DM}. For those controllers whose weight is greater than the effluence, we set them to sending state; for those that has a weight smaller than the threshold, we set them to receiving state; the rests are in idle state. When we start the migration phase, we run this algorithm on every controller $c_i$.
+
+\vspace{-4mm}
+\begin{algorithm}
+Set $MoveList = \emptyset$\;
+\uIf{$w(c_i) \ge Efn$ : in \textbf{sending} state}{
+
+\If{$\exists c_k \in AN(c_i)$ : in receiving or idle state}{
+add $c_k$ to $MoveList$(receiving $>$ idle), otherwise wait for some time and do this again.}
+\Repeat{$w(c_i)\le Efn$}{
+Pick $s_{max}$ with maximum weight, then search the list $RC(s_{max})$, find $c_t$(in $MoveList$) with minimum load, send \textbf{move}$[c_i,s_{max}]$" to $c_t$, then wait for the reply:\\
+
+\If{reply=\textbf{Yes}}
+{
+Migrate the switch $s_{max}$ from controller $c_i$ to controller $c_t$.
+}
+\ElseIf{reply=\textbf{No}}
+{
+remove $c_t$ from $MoveList$, find next $c_t$, send \textbf{Move} again and wait for reply as above.
+}
+Wait for reponse, when receive \textbf{Complete} from the destination controller, continue.
+}
+}
+\uElseIf{$w(c_i) \le Thd_{now}$ : in \textbf{receiving} state}{
+When receiving the \textbf{Move} message:\\
+\Repeat{$w(c_i)+s_{max}\ge Thd_{now}$}{
+receive switches from $c_t$ and send \textbf{Yes} to $c_t$\;
+}
+Reply all \textbf{Move} message with the message \textbf{No}\;
+When finishing receiving the switch $s_{max}$ from controller $c_i$:
+send \textbf{Complete} message to controller $c_i$\;
+}
+\uElseIf{$w(c_i) \in (Thd_{now}, Efn)$ : in \textbf{idle} state}{
+When finishing receiving the switch $s_{max}$ from controller $c_i$:
+send \textbf{Complete} message to controller $c_i$\;
+When receiving \textbf{Move} message:\\
+\lRepeat{$w(c_i)+s_{max}> Efn$}{receiving state}
+Then the controller will reply \textbf{No} to all other \textbf{Move} messages and enter the sending state\;
+}
+
+
+\caption{Distributed Migration (DM-LBMC)}\label{Alg-DM}
+\end{algorithm}
+\vspace{-4mm}
+
+Then we will use the data we get from our experiment to show the effectiveness of our algorithms in the next chapter.

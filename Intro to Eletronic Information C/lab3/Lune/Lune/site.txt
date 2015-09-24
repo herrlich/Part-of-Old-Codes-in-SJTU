@@ -1,0 +1,4 @@
+import urllib
+proto, rest = urllib.splittype("http://www.cnblogs.com/huangcong/archive/2011/09/18/2180711.html")
+host, rest = urllib.splithost(rest)
+print host

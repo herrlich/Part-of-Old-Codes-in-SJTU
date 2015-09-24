@@ -1,0 +1,1 @@
+出现过一个问题，就是hadoop的登录以后运行bin/……的时候拒绝访问（好象是），原因与这句代码有关：sudo chown -R hadoop:hadoop hadoop

@@ -1,0 +1,180 @@
+# -*- coding: utf-8 -*-
+
+import web
+from web import form
+import urllib2
+import os
+import thread
+from lucene import \
+    QueryParser, IndexSearcher, StandardAnalyzer, SimpleFSDirectory, File, \
+    VERSION, initVM, Version, getVMEnv, SimpleAnalyzer
+import jieba
+import nltk
+import sys
+
+urls = (
+    '/', 'index',
+    '/im', 'index_img',
+    '/s', 'text',
+    '/i', 'image'
+)
+
+
+render = web.template.render('templates') # your templates
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+login = form.Form(
+    form.Textbox('keyword',description=''),
+    form.Button('ËÑË÷'),
+)
+
+
+def gDownloadWithFilename(imagurl,savePath,url):
+    outname = savePath + '/' + imagurl.split('/')[-1]
+    print outname
+    try:
+        req = urllib2.Request(imagurl)
+        req.headers['Referer'] = url
+
+
+
+
+        
+        fp = urllib2.urlopen(req)
+        data = fp.read()  
+        fp.close()  
+        file=open(savePath + '/'  + imagurl.split('/')[-1],'w+b')  
+        file.write(data)  
+        file.close()  
+    except IOError:  
+        print "download error!"+ url
+    return outname
+
+def search_image(command):
+    STORE_DIR = "index_img"
+    print 'lucene', VERSION
+##    vm_env = getVMEnv()
+    vm_env.attachCurrentThread()
+    directory = SimpleFSDirectory(File(STORE_DIR))
+    searcher = IndexSearcher(directory, True)
+    analyzer = SimpleAnalyzer(Version.LUCENE_CURRENT)
+    
+		#command = unicode(command, 'GBK')
+    seg_list = jieba.cut(command)
+    command = " ".join(seg_list)
+    if command == '':
+        return
+    print "Searching for:", command
+    query = QueryParser(Version.LUCENE_CURRENT, "contents",
+                        analyzer).parse(command)
+    scoreDocs = searcher.search(query, 10).scoreDocs
+
+    docs = ''
+    #for scoreDoc in scoreDocs:
+    #    doc = searcher.doc(scoreDoc.doc)
+    #    docs += '<a href="' + doc.get('url') + '">' + doc.get("title") + r'</a>' + ' <br> '
+    #return docs
+    urls=[]
+    titles=[]
+    imagurls=[]
+    for scoreDoc in scoreDocs:
+        doc = searcher.doc(scoreDoc.doc)
+        if doc.get('url') in urls:
+            continue
+        url = doc.get('url')
+        imagurl = doc.get('imgurl')
+        
+        urls.append(url)
+        titles.append(doc.get('urltitle'))
+
+        
+        outname = gDownloadWithFilename(imagurl,'static',url)
+        imagurls.append(outname)
+        
+                
+    c = len(urls)
+    return urls,titles,c,imagurls
+
+def search_text(command):
+    STORE_DIR = "index"
+    print 'lucene', VERSION
+    vm_env.attachCurrentThread()
+    directory = SimpleFSDirectory(File(STORE_DIR))
+    searcher = IndexSearcher(directory, True)
+    analyzer = SimpleAnalyzer(Version.LUCENE_CURRENT)
+    
+		#command = unicode(command, 'GBK')
+    seg_list = jieba.cut(command)
+    command = " ".join(seg_list)
+    if command == '':
+        return
+    print "Searching for:", command
+    query = QueryParser(Version.LUCENE_CURRENT, "contents",
+                        analyzer).parse(command)
+    scoreDocs = searcher.search(query, 10).scoreDocs
+
+    docs = ''
+    #for scoreDoc in scoreDocs:
+    #    doc = searcher.doc(scoreDoc.doc)
+    #    docs += '<a href="' + doc.get('url') + '">' + doc.get("title") + r'</a>' + ' <br> '
+    #return docs
+    urls=[]
+    titles=[]
+    before=[]
+    after=[]
+    segword=[]
+    for scoreDoc in scoreDocs:
+        doc = searcher.doc(scoreDoc.doc)
+        urls.append(doc.get('url'))
+        titles.append(doc.get('title'))
+        filename=doc.get('name')
+        f = open('html/'+filename,'r')
+        raw_file = f.read()
+        pos = raw_file.find('charset')
+        raw_file_head = raw_file[pos : pos + 20].lower()
+        coding = 'gbk'
+        if 'utf' in raw_file_head:
+            coding = 'utf8'
+        contents = raw_file.decode(coding,'ignore')
+        contents = nltk.clean_html(contents)
+        contents = contents.replace('\n',' ')
+        for s in command.split(' '):
+            p=contents.find(s)
+            if p!=-1:
+                before.append(contents[p-20:p])
+                segword.append(s)
+                after.append(contents[p+len(s):p+len(s)+20])
+                break
+                
+    c = len(urls)
+    return urls,titles,c,before,segword,after
+
+class index:
+    def GET(self):
+        f = login()
+        return render.formtest(f)
+    
+class index_img:
+    def GET(self):
+        f = login()
+        return render.formtest_img(f)//
+
+class image:
+    def GET(self):
+        user_data = web.input()
+        a,b,c,d = search_image(user_data.keyword)
+        f=login()
+        return render.result_img(a,b,c,user_data.keyword,f,d)
+
+class text:
+    def GET(self):
+        user_data = web.input()
+        a,b,c,be,seg,af = search_text(user_data.keyword)
+        f=login()
+        return render.result_text(a,b,c,user_data.keyword,f,be,seg,af)
+
+if __name__ == "__main__":
+    vm_env = initVM()
+    app = web.application(urls, globals())
+    app.run()

@@ -1,0 +1,68 @@
+<html>
+<head>
+<style type="text/css">
+div {width:1000px; height:150px;  border:none; margin-top:30px;margin-left:15%}
+
+div.sign {width:1000px; height:150px;  border:none; margin-top:0px ;margin-left:80%}
+
+	
+img.logo {display:block; margin:0 auto;}
+
+input.keyword {
+	width:60%;
+	height:20%;
+	display:block; margin:0 auto;
+	border-color:#E0D7E6;
+	border-width:thin;
+	font-size:24px;
+}
+
+.test {
+	width:10%;
+	height:20%;
+	display:block;
+	margin:0 auto;
+}
+
+ul
+{
+	float:left;
+	width:100%;
+	padding:0;
+	margin:0;
+	list-style-type:none;
+}
+a
+{
+	float:left;
+	width:7em;
+	text-decoration:none;
+	color:white;
+	background-color:#DBAEEE;
+	padding:0.2em 0.6em;
+	border-right:1px solid white;
+}
+a:hover {background-color:#ff3300}
+li {display:inline}
+</style>
+</head>
+
+<body>
+<div class="sign">
+<ul>
+<li><a href="#">µÇÂ½</a></li>
+<li><a href="#">×¢²á</a></li>
+</ul>
+</div>
+<div><img class="logo" src="../My Pictures/test.gif" /><br />
+
+<form name="input" action="http://www.baidu.com/s" method="get" >
+<input type="text" class="keyword" name="wd" /><br/>
+<input type="submit" class="test" value="ÄãÃÃÒ»ÏÂ" />
+</form>
+<br />
+
+</div>
+</body>
+
+</html>

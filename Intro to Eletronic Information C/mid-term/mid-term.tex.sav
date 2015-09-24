@@ -1,0 +1,10 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{graphicx}
+\author{Yuxiang Chen 5110309783}
+\title{Report of Mid-Term Integration}
+\begin{document}
+\maketitle
+\tableofcontents
+\section{The Purpose of This Experiment and My Preparation}
+After reading the instructions in the demo ppt file, I find the main task for us to do is just set up a new search engine including both the function of text search and image search, with the framework modified by div+css

@@ -1,0 +1,741 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{graphicx}
+\author{Yuxiang Chen 5110309783}
+\title{Report of Mid-Term Integration}
+\begin{document}
+\maketitle
+\tableofcontents
+\section{The Purpose of This Experiment and My Preparation}
+After reading the instructions in the demo ppt file, I find the main task for us to do is just set up a new search engine including both the function of text search and image search, with the framework modified by div+css. So I take some time on the Internet to learn how to use this method. Since the experiment is mainly based on lab4, I will try to make this report simple and short(Because I will also include the report of lab4 in the packaged homework).
+\section{The Main Part of the Experiment}
+The main part is nearly the same as lab4, including make indexes of both texts and images, then write the html files to show the result in the form of web pages.
+\subsection{Making an Index First}
+The index part is the same as lab3, so I'll only paste the codes here. And since we have to do two kinds of search, so I just make two indexes, one about text and the other about images. To make it easier to transport to the teach assistant, I will only crawl 30 of each web pages as a simple example. And you can use the index code to crawl more web pages if you want. But since I crawled a web site about pictures of desktop last time, so this time my picture searching program will only concentrate on that site.\\
+This is the index program about text index:
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+import sys, os, lucene, threading, time,chardet,urllib2
+from datetime import datetime
+from BeautifulSoup import BeautifulSoup
+from ctypes import *
+import re
+import string
+
+def filter_tags(htmlstr):
+    re_cdata=re.compile('//<!\[CDATA\[[^>]*//\]\]>',re.I)
+    re_script=re.compile('<\s*script[^>]*>[^<]*<\s*/\s*script\s*>',re.I)
+    re_style=re.compile('<\s*style[^>]*>[^<]*<\s*/\s*style\s*>',re.I)
+    re_br=re.compile('<br\s*?/?>')
+    re_h=re.compile('</?\w+[^>]*>')
+    re_comment=re.compile('<!--[^>]*-->')
+    s=re_cdata.sub('',htmlstr)
+    s=re_script.sub('',s)
+    s=re_style.sub('',s)
+    s=re_br.sub('\n',s)
+    s=re_h.sub('',s)
+    s=re_comment.sub('',s)
+    blank_line=re.compile('\n+')
+    s=blank_line.sub('\n',s)
+    s=replaceCharEntity(s)
+    return s
+
+
+def replaceCharEntity(htmlstr):
+    CHAR_ENTITIES={'nbsp':' ','160':' ','lt':'<','60':'<','gt':'>','62':'>','amp':'&','38':'&','quot':'"','34':'"',}
+    re_charEntity=re.compile(r'&#?(?P<name>\w+);')
+    sz=re_charEntity.search(htmlstr)
+    while sz:
+        entity=sz.group()
+        key=sz.group('name')
+        try:
+            htmlstr=re_charEntity.sub(CHAR_ENTITIES[key],htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+        except KeyError:
+            htmlstr=re_charEntity.sub('',htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+    return htmlstr
+
+
+def repalce(s,re_exp,repl_string):
+    return re_exp.sub(repl_string,s)
+
+
+class Ticker(object):
+
+    def __init__(self):
+        self.tick = True
+
+    def run(self):
+        while self.tick:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            time.sleep(1.0)
+
+class IndexFiles(object):
+    """Usage: python IndexFiles <doc_directory>"""
+
+    def __init__(self, root, storeDir, analyzer):
+
+        if not os.path.exists(storeDir):
+            os.mkdir(storeDir)
+        store = lucene.SimpleFSDirectory(lucene.File(storeDir))
+        writer = lucene.IndexWriter(store, analyzer, True,
+                                    lucene.IndexWriter.MaxFieldLength.LIMITED)
+        writer.setMaxFieldLength(1048576)
+        self.indexDocs(root, writer)
+        ticker = Ticker()
+        print 'optimizing index',
+        threading.Thread(target=ticker.run).start()
+        writer.optimize()
+        writer.close()
+        ticker.tick = False
+        print 'done'
+
+    def indexDocs(self, root, writer):
+        for root, dirnames, filenames in os.walk(root):
+            for filename in filenames:
+                if filename.endswith('.txt'):
+                    continue
+                print "adding", filename
+                try:
+                    path = os.path.join(root, filename)
+                    file = open(path)
+                    buf = file.read()
+                    contents=buf
+                    result = chardet.detect(buf)['encoding']
+                    if result=='GB2312':
+                        contents = buf.decode('gbk').encode('utf8')
+                    file.close()
+                    soup=BeautifulSoup(contents)
+                    url=mydict[filename]
+                    title=str(soup.head.title.string).decode('utf8')
+                    new_contents=filter_tags(contents)
+                    new_contents=str(new_contents).strip().decode('utf8')
+                    pos=new_contents.find('>')
+                    new_contents=new_contents[pos+1:]
+                    temp=new_contents.split()
+                    newtext=' '.join(temp)
+                    contents=''.join(soup.findAll(text=True))
+                    doc = lucene.Document()
+                    doc.add(lucene.Field("text", newtext,
+                                         lucene.Field.Store.YES,
+                                         lucene.Field.Index.NOT_ANALYZED))
+                    doc.add(lucene.Field("url", url,
+                                         lucene.Field.Store.YES,
+                                         lucene.Field.Index.NOT_ANALYZED))
+                    doc.add(lucene.Field("title", title,
+                                         lucene.Field.Store.YES,
+                                         lucene.Field.Index.NOT_ANALYZED))
+                    if len(contents) > 0:
+                        dll=cdll.LoadLibrary("F:\\ICTCLAS50_Windows_32_C\ICTCLAS50.dll")
+                        dll.ICTCLAS_Init(c_char_p("F:\\ICTCLAS50_Windows_32_C"))
+                        strlen = len(c_char_p(contents).value)
+                        t =c_buffer(strlen*6)
+                        bSuccess = dll.ICTCLAS_ParagraphProcess(c_char_p(contents),c_int(strlen),t,c_int(0),0)
+                        contents=t.value.decode('gbk').encode('utf8')
+                        ##list=t.value.split()
+                        ##print ' '.join(list)
+                        dll.ICTCLAS_Exit()
+                        doc.add(lucene.Field("contents", contents,
+                                             lucene.Field.Store.NO,
+                                             lucene.Field.Index.ANALYZED))
+                    else:
+                        print "warning: no content in %s" % filename
+                    writer.addDocument(doc)
+                except Exception, e:
+                    print "Failed in indexDocs:", e
+
+if __name__ == '__main__':
+##    if len(sys.argv) < 2:
+##        print IndexFiles.__doc__
+##        sys.exit(1)
+    lucene.initVM()
+    print 'lucene', lucene.VERSION
+    start = datetime.now()
+    dic= open('F:\\html\index.txt')
+    d = dic.readlines()
+    dic.close()
+    mydict = {}
+    for word in d:
+        value=''
+        try:
+            key = word.split(';')[0]
+            value = word.split(';')[1]
+            mydict[key] = value
+        except:
+            pass
+    try:
+##        IndexFiles(sys.argv[1], "index", lucene.SimpleAnalyzer(lucene.Version.LUCENE_CURRENT))
+        IndexFiles('F:\\html', "F:\\index", lucene.SimpleAnalyzer(lucene.Version.LUCENE_CURRENT))
+        end = datetime.now()
+        print end - start
+    except Exception, e:
+        print "Failed: ", e
+
+\end{lstlisting}
+But this time the index about texts is a little different from lab3, but is the same as lab4, of course. Since I do write some codes to avoid the appearance of some useless html tags in the text I stored. You can see it clearly in my report of lab4. And this is the index program about image index:\\
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+import sys, os, lucene, threading, time,chardet,urllib2,re
+from datetime import datetime
+from BeautifulSoup import BeautifulSoup
+from ctypes import *
+import urllib
+import Queue
+import urlparse
+
+#这个程序只适用于在魔法桌面上爬取的网站http://www.ommoo.com/别的网站还要改搜索的标签#
+
+"""
+This class is loosely based on the Lucene (java implementation) demo class
+org.apache.lucene.demo.IndexFiles.  It will take a directory as an argument
+and will index all of the files in that directory and downward recursively.
+It will index on the file path, the file name and the file contents.  The
+resulting Lucene index will be placed in the current directory and called
+'index'.
+"""
+
+class Ticker(object):
+
+    def __init__(self):
+        self.tick = True
+
+    def run(self):
+        while self.tick:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            time.sleep(1.0)
+
+class IndexFiles(object):
+    """Usage: python IndexFiles <doc_directory>"""
+
+    def __init__(self, root, storeDir, analyzer):
+
+        if not os.path.exists(storeDir):
+            os.mkdir(storeDir)
+        store = lucene.SimpleFSDirectory(lucene.File(storeDir))
+        writer = lucene.IndexWriter(store, analyzer, True,
+                                    lucene.IndexWriter.MaxFieldLength.LIMITED)
+        writer.setMaxFieldLength(1048576)
+        self.indexDocs(root, writer)
+        ticker = Ticker()
+        print 'optimizing index',
+        threading.Thread(target=ticker.run).start()
+        writer.optimize()
+        writer.close()
+        ticker.tick = False
+        print 'done'
+
+    def indexDocs(self, root, writer):
+        for root, dirnames, filenames in os.walk(root):
+            for filename in filenames:
+                if filename.endswith('.txt'):
+                    continue
+                print "adding", filename
+                try:
+                    path = os.path.join(root, filename)
+                    file = open(path)
+                    buf = file.read()
+                    contents=buf
+                    result = chardet.detect(buf)['encoding']
+                    if result=='GB2312':
+                        contents = buf.decode('gbk').encode('utf8')
+                    file.close()
+                    soup=BeautifulSoup(contents)
+                    url=mydict[filename]
+                    proto, rest = urllib.splittype(url)
+                    site, rest = urllib.splithost(rest)
+                    title=str(soup.head.title.string.strip()).decode('utf8')
+                    flag2=0
+                    for i in soup.findAll('img'):
+                        contents=""
+                        flag1=0
+                        flag3=0
+                        try:
+                            contents=contents+' '+i['alt']
+                        except:
+                            pass
+                        tempurl=i['src']
+                        imgurl=urlparse.urljoin(url,tempurl)
+                        temp=i.parent.parent
+                        try:
+                            photoid=temp.find('a')['data-photo-id']
+                            flag1=1
+                        except:
+                            pass
+                        try:
+                            picid=temp.parent.find('article')['id']
+                            flag3=1
+                        except:
+                            pass
+                        try:
+                            for t in temp.findAll('b'):
+                                try:
+                                    contents=contents+' '+t.string.strip()
+                                except:
+                                    pass
+                        except:
+                            pass
+                        try:
+                            for k in temp.findAll('p'):
+                                try:
+                                    contents=contents+' '+k.string.strip()
+                                except:
+                                    pass
+                        except:
+                            pass
+                        try:
+                            for j in temp.findAll('span',{'class':'title'}):
+                                try:
+                                    contents=contents+' '+j.string.strip()
+                                except:
+                                    pass
+                        except:
+                            pass
+                        if flag1==1:
+                            timetowait=0
+                            try:
+                                for p in temp.parent.findAll('div',{'class':'card-content'}):
+                                    if timetowait<flag2:
+                                        timetowait+=1
+                                        continue
+                                    contents=contents+' '+p.string.strip()
+                                    flag2+=1
+                                    break
+                            except:
+                                pass
+                        if flag3==1:
+                            try:
+                                for q in temp.parent.findAll('div',{'class':'post-title'}):
+                                    r=q.find('h1')
+                                    contents=contents+' '+str(r.string).decode('utf8')
+                                    break
+                            except:
+                                pass
+                        contents=contents.strip()
+                        doc = lucene.Document()
+                        doc.add(lucene.Field("imgurl", imgurl,
+                                            lucene.Field.Store.YES,
+                                            lucene.Field.Index.NOT_ANALYZED))
+                        doc.add(lucene.Field("url", url,
+                                            lucene.Field.Store.YES,
+                                            lucene.Field.Index.NOT_ANALYZED))
+                        doc.add(lucene.Field("title", title,
+                                            lucene.Field.Store.YES,
+                                            lucene.Field.Index.NOT_ANALYZED))
+                        if len(contents) > 0:
+                            dll=cdll.LoadLibrary("F:\\ICTCLAS50_Windows_32_C\ICTCLAS50.dll")
+                            dll.ICTCLAS_Init(c_char_p("F:\\ICTCLAS50_Windows_32_C"))
+                            strlen = len(c_char_p(contents).value)
+                            t =c_buffer(strlen*6)
+                            bSuccess = dll.ICTCLAS_ParagraphProcess(c_char_p(contents),c_int(strlen),t,c_int(0),0)
+                            contents=t.value.decode('gbk').encode('utf8')
+                            ##list=t.value.split()
+                            ##print ' '.join(list)
+                            dll.ICTCLAS_Exit()
+                            doc.add(lucene.Field("contents", contents,
+                                                lucene.Field.Store.NO,
+                                                lucene.Field.Index.ANALYZED))
+                        else:
+                            print "warning: no content in part of %s" % filename
+                        writer.addDocument(doc)
+                except Exception, e:
+                    print "Failed in indexDocs:", e
+
+if __name__ == '__main__':
+##    if len(sys.argv) < 2:
+##        print IndexFiles.__doc__
+##        sys.exit(1)
+    lucene.initVM()
+    print 'lucene', lucene.VERSION
+    start = datetime.now()
+    dic= open('F:\\html\index.txt')
+    d = dic.readlines()
+    dic.close()
+    mydict = {}
+    for word in d:
+        key = word.split(';')[0]
+        value = word.split(';')[1]
+        mydict[key] = value
+    try:
+##        IndexFiles(sys.argv[1], "index", lucene.WhitespaceAnalyzer(lucene.Version.LUCENE_CURRENT))
+        IndexFiles('F:\\html', "F:\\imgindex", lucene.WhitespaceAnalyzer(lucene.Version.LUCENE_CURRENT))
+        end = datetime.now()
+        print end - start
+    except Exception, e:
+        print "Failed: ", e
+
+\end{lstlisting}
+And the pictures of the indexes have been given in report of lab4, so I won't present it here.
+\subsection{The Part of Establishing the Web Page}
+In this part, what I need to do is to modify my html files in the form of div+css.\\
+First, we need to change the image search and text search at first. And since the formtest html files are really easy, so I use the normal html files in them. And I use the div+css in the result html files. It is quite easy if we know how to use css selector to edit the properties of the contents in it and how to insert python clause in it.\\
+Now here is the file of text search 'formtest.html':
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$def with(form)
+	<title>Chris的搜索程序</title>
+	网页
+	<a href="/i" >图片</a>
+		<form name="input" form action="/s" method="GET"> 关键词 :
+		<input type="keyword" name="keyword" />
+		<input type="submit" value="元芳一下"/>
+		</form>
+\end{lstlisting}
+And this is the file of image search 'img formtest':
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$def with(form)
+    <title>Chris的搜索程序</title>
+    <a href="/" >网页</a>
+    图片
+        <form name="input" form action="/im" method="GET"> 关键词 :
+        <input type="keyword" name="keyword" />
+        <input type="submit" value="元芳图片"/>
+        </form>
+\end{lstlisting}
+This is the file of text search 'search.html', and you can see how I edit the pages in this file.
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$def with (form,name,qurl,qtitle,qnew_text1,qnew_text2,q_query,total)
+<!DOCTYPE html>
+<html>
+	<head>
+	<title>Chris的搜索程序</title>
+	网页
+	<a href="/i" >图片</a>
+	<form name="input" form action="/s" method="GET"> 关键词 :
+		<input type="keyword" name="keyword" />
+		<input type="submit" value="元芳一下"/>
+	</form>
+	<style type="text/css">
+		#red {color:red;}
+		#green {color:green;}
+		[url] {color:green;}
+		div.container{width:100%;margin:5px;border:3px solid purple;line-height:150%}
+		div.headcontainer{width:100%;margin:5px;border:3px solid purple;line-height:150%;background:yellow;color:purple;padding:1em;text-align: center}
+		div.content{margin:0px;padding:1em;}
+	</style>
+	</head>
+	<body>
+		<div class="headcontainer"><h2>搜索关键词为 " $name " 共有结果 $total 条</h2></div>
+		$if total:
+			$for i in range(total):
+			<div class="container">
+				<div class="content">
+					<h2><a href=" $qurl[i] ">$qtitle[i]</a></h2>
+					<p>$qnew_text1[i].strip()<span id='red'>$q_query[i]</span>$qnew_text2[i].strip() ......</p>
+					<p url="$qurl[i]">$qurl[i]</p>
+				</div>
+			</div>		
+		$else:
+			<div class="container">
+				<div class="content">
+					<h2>根据相关法律法规和政策，部分搜索结果未予显示</h2>
+				</div>
+			</div>
+	</body>
+</html>
+\end{lstlisting}
+Now is the last part, I write the file of image search 'img result.html' in this way. And I will explain how I design this page in next section.
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$def with (form,name,qurl,qtitle,qimgurl,total)
+<!DOCTYPE html>
+<html>
+	<head>
+	<title>Chris的搜索程序</title>
+	<a href="/" >网页</a>
+	图片
+	<form name="input" form action="/im" method="GET"> 关键词 :
+		<input type="keyword" name="keyword" />
+		<input type="submit" value="元芳一下"/>
+	</form>
+	<style type="text/css">
+		div.container{width:100%;margin:5px;border:3px solid blue;line-height:150%;color:purple;background-color:pink}
+		div.scontainer{width:320px;height:240px;margin:5px;border:3px solid pink;line-height:100%;float:left}
+		div.content{margin:0px;padding:3px;max-height:220px}
+	</style>
+	</head>
+	<body>
+		<div class="container"><div class="content"><h2>搜索关键词为 " $name "</h2></div></div>
+		$if total:
+			$for i in range(total):
+				<div class="scontainer">
+					<div class="content">
+						<h4><a href=" $qurl[i] ">$qtitle[i]</a></h4>
+						<img src=" $qimgurl[i] "></div></div>
+		$else:
+			<div class="container">
+				<div class="content">
+				<h2>根据相关法律法规和政策，部分搜索结果未予显示</h2>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
+\end{lstlisting}
+And I will give the screenshots of my search engine together in the search section.
+\section{The Main Searching Part of the Program}
+This part is simply an addition to lab4, only attaching 2 classes and a function about image search, which is nearly the same as text search. And with these functions, we are able to search for certain pictures and show them out in a web page.
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+import web
+from web import form
+import urllib2
+import os
+from lucene import \
+    QueryParser, IndexSearcher, SimpleAnalyzer, SimpleFSDirectory, File, \
+    VERSION, initVM, Version
+from ctypes import *
+
+urls = (
+    '/', 'index',
+    '/s', 'text',
+    '/i', 'img_index',
+    '/im', 'img'
+)
+
+
+render = web.template.render('templates') # your templates
+
+login = form.Form(
+    form.Textbox('keyword'),
+    form.Button('Search'),
+)
+
+def func(command, searcher, analyzer):
+    if len(command) > 0:
+        dll=cdll.LoadLibrary("F:\\ICTCLAS50_Windows_32_C\ICTCLAS50.dll")
+        dll.ICTCLAS_Init(c_char_p("F:\\ICTCLAS50_Windows_32_C"))
+        strlen = len(c_char_p(command).value)
+        t =c_buffer(strlen*6)
+        bSuccess = dll.ICTCLAS_ParagraphProcess(c_char_p(command),c_int(strlen),t,c_int(0),0)
+        command=t.value.decode('gbk').encode('utf8')
+        ##list=t.value.split()
+        ##print ' '.join(list)
+        dll.ICTCLAS_Exit()
+        command=command.decode('utf8')
+    query = QueryParser(Version.LUCENE_CURRENT, "contents",analyzer).parse(command)
+    scoreDocs = searcher.search(query, 50).scoreDocs
+    total=len(scoreDocs)
+    qtitle=[]
+    qurl=[]
+    qnew_text1=[]
+    qnew_text2=[]
+    q_query=[]
+    new_query=str(query).replace ('contents:','').decode('utf8')
+    if total==0:
+        return command,qurl,qtitle,qnew_text1,qnew_text2,q_query,total
+    for scoreDoc in scoreDocs:
+        doc = searcher.doc(scoreDoc.doc)
+        text=doc.get("text")
+        new_text=str(text).decode('utf8')
+        temp_query=new_query.replace(' ','')
+        num=new_text.find(temp_query)
+        query_len=len(temp_query)
+        splited_query=new_query.split(' ')
+        splitlen=len(splited_query)
+        if (num!=-1):
+            try:
+                new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+            except:
+                try:
+                    new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                    new_text2=""
+                except:
+                    try:
+                        new_text1=""
+                        new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+                    except:
+                        new_text1=""
+                        new_text2=""
+            q_query.append(temp_query)
+        else:
+            for i in range(splitlen):
+                parted_query=splited_query[i].decode('utf8')
+                num=new_text.find(parted_query)
+                if num==-1:
+                    continue
+                query_len=len(parted_query)
+                try:
+                    new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                    new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+                except:
+                    try:
+                        new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                        new_text2=""
+                    except:
+                        try:
+                            new_text1=""
+                            new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+                        except:
+                            new_text1=""
+                            new_text2=""
+                q_query.append(parted_query)
+                break
+            if num==-1:
+                total=total-1
+                continue
+        title=doc.get("title")
+        url=doc.get("url")
+        qurl.append(url)
+        qtitle.append(title)
+        qnew_text1.append(new_text1)
+        qnew_text2.append(new_text2)
+    return command,qurl,qtitle,qnew_text1,qnew_text2,q_query,total
+
+def img_func(command, searcher, analyzer):
+    if len(command) > 0:
+        dll=cdll.LoadLibrary("F:\\ICTCLAS50_Windows_32_C\ICTCLAS50.dll")
+        dll.ICTCLAS_Init(c_char_p("F:\\ICTCLAS50_Windows_32_C"))
+        strlen = len(c_char_p(command).value)
+        t =c_buffer(strlen*6)
+        bSuccess = dll.ICTCLAS_ParagraphProcess(c_char_p(command),c_int(strlen),t,c_int(0),0)
+        command=t.value.decode('gbk').encode('utf8')
+        ##list=t.value.split()
+        ##print ' '.join(list)
+        dll.ICTCLAS_Exit()
+        command=command.decode('utf8')
+    if command == '':
+        return
+    query = QueryParser(Version.LUCENE_CURRENT, "contents",analyzer).parse(command)
+    scoreDocs = searcher.search(query, 50).scoreDocs
+    total=len(scoreDocs)
+    qtitle=[]
+    qurl=[]
+    qimgurl=[]
+    for scoreDoc in scoreDocs:
+        doc = searcher.doc(scoreDoc.doc)
+        imgurl=doc.get("imgurl")
+        if imgurl not in qimgurl:
+            title=doc.get("title")
+            qtitle.append(title)
+            url=doc.get("url")
+            qurl.append(url)
+            qimgurl.append(imgurl)
+        else:
+            total-=1
+            continue
+    return command,qurl,qtitle,qimgurl,total
+
+class index:
+    def GET(self):
+        f = login()
+        return render.formtest(f)
+
+class img_index:
+    def GET(self):
+        f = login()
+        return render.img_formtest(f)
+
+class text:
+    def GET(self):
+        vm_env = initVM()
+        form1 = login()
+        user_data = web.input()
+        vm_env.attachCurrentThread()
+        STORE_DIR = "F:\\index"
+        directory = SimpleFSDirectory(File(STORE_DIR))
+        searcher = IndexSearcher(directory, True)
+        analyzer = SimpleAnalyzer(Version.LUCENE_CURRENT)
+        a,b,c,d,e,f,g= func(user_data.keyword,searcher,analyzer)
+        searcher.close()
+        return render.result(form1,a,b,c,d,e,f,g)
+
+
+class img:
+    def GET(self):
+        vm_env = initVM()
+        form1 = login()
+        user_data = web.input()
+        vm_env.attachCurrentThread()
+        STORE_DIR = "F:\\imgindex"
+        directory = SimpleFSDirectory(File(STORE_DIR))
+        searcher = IndexSearcher(directory, True)
+        analyzer = SimpleAnalyzer(Version.LUCENE_CURRENT)
+        a,b,c,d,e = img_func(user_data.keyword,searcher,analyzer)
+        searcher.close()
+        return render.img_result(form1,a,b,c,d,e)
+
+if __name__ == "__main__":
+    app = web.application(urls, globals())
+    app.run()
+
+\end{lstlisting}
+And now I will show you some pictures of my finished search engine.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{6.png}
+\caption{text search 1}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{7.png}
+\caption{text search 2}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{9.png}
+\caption{text search 3}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{8.png}
+\caption{image search 1}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{10.png}
+\caption{image search 2}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{11.png}
+\caption{image search 3}
+\end{figure}
+\section{The Problems I Met and My Thoughts}
+In this part, the main problem is how to build my pages using div+css. At first, I find I couldn't change the searching pages about text and images, then with the help of TA, I find it was because of this part:
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+urls = (
+    '/', 'index',
+    '/s', 'text',
+    '/i', 'img_index',
+    '/im', 'img')
+\end{lstlisting}
+When I write it at the first time, I left a comma in the third line, leading to a series of errors. And after this, it seems easier. I finished the text searching part easily. But at the image searching part, I met a trouble at first: I couldn't print some pictures in a same line. Then after some research, I find it is because this property :"float:left", which allows elements to be shown on its left. \\
+And in the index part, I also have some trouble getting rid of the html tags and other useless codes, and I search for it on the Internet, finding it can be solved using regular expression:
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+def filter_tags(htmlstr):
+    re_cdata=re.compile('//<!\[CDATA\[[^>]*//\]\]>',re.I)
+    re_script=re.compile('<\s*script[^>]*>[^<]*<\s*/\s*script\s*>',re.I)
+    re_style=re.compile('<\s*style[^>]*>[^<]*<\s*/\s*style\s*>',re.I)
+    re_br=re.compile('<br\s*?/?>')
+    re_h=re.compile('</?\w+[^>]*>')
+    re_comment=re.compile('<!--[^>]*-->')
+    s=re_cdata.sub('',htmlstr)
+    s=re_script.sub('',s)
+    s=re_style.sub('',s)
+    s=re_br.sub('\n',s)
+    s=re_h.sub('',s)
+    s=re_comment.sub('',s)
+    blank_line=re.compile('\n+')
+    s=blank_line.sub('\n',s)
+    s=replaceCharEntity(s)
+    return s
+
+
+def replaceCharEntity(htmlstr):
+    CHAR_ENTITIES={'nbsp':' ','160':' ','lt':'<','60':'<','gt':'>','62':'>','amp':'&','38':'&','quot':'"','34':'"',}
+    re_charEntity=re.compile(r'&#?(?P<name>\w+);')
+    sz=re_charEntity.search(htmlstr)
+    while sz:
+        entity=sz.group()
+        key=sz.group('name')
+        try:
+            htmlstr=re_charEntity.sub(CHAR_ENTITIES[key],htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+        except KeyError:
+            htmlstr=re_charEntity.sub('',htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+    return htmlstr
+    
+\end{lstlisting}
+So after solving all these problems and set the max width of the pictures, I successfully finished my html file.\\
+But I also know there is still a lot of things to revise. For example, I can divide the outcomes into several pages, or add some more search like music search, etc. But I'm really busy this time, so maybe I will do more about this in the future.
+\end{document}

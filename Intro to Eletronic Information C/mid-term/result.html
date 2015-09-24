@@ -1,0 +1,39 @@
+﻿$def with (form,name,qurl,qtitle,qnew_text1,qnew_text2,q_query,total)
+<!DOCTYPE html>
+<html>
+	<head>
+	<title>Chris的搜索程序</title>
+	网页
+	<a href="/i" >图片</a>
+	<form name="input" form action="/s" method="GET"> 关键词 :
+		<input type="keyword" name="keyword" />
+		<input type="submit" value="元芳一下"/>
+	</form>
+	<style type="text/css">
+		#red {color:red;} 
+		#green {color:green;}
+		[url] {color:green;}
+		div.container{width:100%;margin:5px;border:3px solid purple;line-height:150%}
+		div.headcontainer{width:100%;margin:5px;border:3px solid purple;line-height:150%;background:yellow;color:purple;text-align: center}
+		div.content{margin:0px;padding:1em;}
+	</style>
+	</head>
+	<body>
+		<div class="headcontainer"><h2>搜索关键词为 " $name " 共有结果 $total 条</h2></div>
+		$if total:
+			$for i in range(total):
+			<div class="container">
+				<div class="content">
+					<h3><a href=" $qurl[i] ">$qtitle[i]</a></h3>
+					<p>$qnew_text1[i].strip()<span id='red'>$q_query[i]</span>$qnew_text2[i].strip() ......</p>
+					<p url="$qurl[i]">$qurl[i]</p>
+				</div>
+			</div>		
+		$else:
+			<div class="container">
+				<div class="content">
+					<h2>根据相关法律法规和政策，部分搜索结果未予显示</h2>
+				</div>
+			</div>
+	</body>
+</html>

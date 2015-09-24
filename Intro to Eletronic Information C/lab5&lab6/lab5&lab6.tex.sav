@@ -1,0 +1,10 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{graphicx}
+\author{Yuxiang Chen 5110309783}
+\title{Report of Lab5&Lab6}
+\begin{document}
+\maketitle
+\tableofcontents
+\section{The Purpose of This Experiment and My Preparation}
+Technologically speaking, this experiment is mainly focused on a new operating system -Linux. So it's also clear that all the experiments are based on the OS and we  

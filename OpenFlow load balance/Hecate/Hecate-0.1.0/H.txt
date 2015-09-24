@@ -1,0 +1,1 @@
+这个版本为所有的controller和switch赋了权值，并且建立了对controller和switch的潜在关系的对应矩阵。同时也建立了临近controller的矩阵

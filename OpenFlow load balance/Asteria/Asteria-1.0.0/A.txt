@@ -1,0 +1,1 @@
+这个版本基本上实现了分布式迁移的算法，通过随机选取controller（shuffle了controller的数组），来达到一个伪分布式的目的

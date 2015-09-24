@@ -1,0 +1,200 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <signal.h>
+#include <stdlib.h>
+
+#define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
+#define BUFFER_SIZE 50
+
+static char buffer[BUFFER_SIZE];
+char history[10][BUFFER_SIZE];
+int count = 0;
+int his[10] = {0};
+
+void handle_SIGINT() {
+	write(STDOUT_FILENO, buffer, strlen(buffer));
+	printf("The latest 10 orders are:\n");
+	int start = count % 10;
+	int i, j;
+	if (count < 10) {
+		for (i = 0; i < count; ++i){
+			printf("%d. %s", i + 1, history[i]);
+		}
+	}
+	else {
+		for (j = 0; j < 10; ++j) {
+			int number = count - 9 + j;
+			printf("%d. %s", number, history[start]);
+			start = (start + 1) % 10;
+		}
+	}
+	exit(0);
+}
+
+/**
+* setup() reads in the next command line, separating it into distinct tokens
+* using whitespace as delimiters. setup() sets the args parameter as a
+* null-terminated string.
+*/
+
+int setup(char inputBuffer[], char *args[], int *background)
+{
+	int length, /* # of characters in the command line */
+		i,      /* loop index for accessing inputBuffer array */
+		start,  /* index where beginning of next command parameter is */
+		ct;     /* index of where to place the next parameter into args[] */
+
+	ct = 0;
+
+	/* read what the user enters on the command line */
+	length = read(STDIN_FILENO, inputBuffer, MAX_LINE);
+	inputBuffer[length] = '\0';
+
+	if (inputBuffer[0] == 'r' && count > 0) {
+		if (inputBuffer[1] == '\n') {
+			if (his[(count - 1) % 10] == 1) return 1;
+			strcpy(inputBuffer, history[(count - 1) % 10]);
+		}
+		else {
+			if (inputBuffer[1] == ' ' && inputBuffer[2] != '\0'  && inputBuffer[3] == '\n') {
+				int i;
+				int start = (count - 1) % 10;
+				if (count < 10) {
+					for (i = count - 1; i >= 0; --i) {
+						if (history[i][0] == inputBuffer[2]) {
+							if (his[i] == 1) return 1;
+							strcpy(inputBuffer, history[i]);
+							break;
+						}
+					}
+				}
+				else {
+					for (i = 0; i < 10; ++i) {
+						if (history[start][0] == inputBuffer[2]) {
+							if (his[start] == 1) return 1;
+							strcpy(inputBuffer, history[start]);
+							break;
+						}
+						start = (start - 1 + 10) % 10;
+					}
+				}
+			}
+		}
+		length = strlen(inputBuffer);
+	}
+
+	start = -1;
+	if (length == 0)
+		exit(0);            /* ^d was entered, end of user command stream */
+	if (length < 0){
+		perror("error reading the command");
+		return 1;
+		//exit(-1);           /* terminate with error code of -1 */
+	}
+	if (length > 0) {
+		strcpy(history[count % 10], inputBuffer);
+		++count;
+	}
+
+	/* examine every character in the inputBuffer */
+	for (i = 0; i<length; i++) {
+		switch (inputBuffer[i]){
+		case ' ':
+		case '\t':               /* argument separators */
+			if (start != -1){
+				args[ct] = &inputBuffer[start];    /* set up pointer */
+				ct++;
+			}
+			inputBuffer[i] = '\0'; /* add a null char; make a C string */
+			start = -1;
+			break;
+
+		case '\n':                 /* should be the final char examined */
+			if (start != -1){
+				args[ct] = &inputBuffer[start];
+				ct++;
+			}
+			inputBuffer[i] = '\0';
+			args[ct] = NULL; /* no more arguments to this command */
+			break;
+
+		default:             /* some other character */
+			if (start == -1)
+				start = i;
+			if (inputBuffer[i] == '&'){
+				*background = 1;
+				inputBuffer[i] = '\0';
+			}
+		}
+	}
+	args[ct] = NULL; /* just in case the input line was > 80 */
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	char inputBuffer[MAX_LINE]; /* buffer to hold the command entered */
+	int background;             /* equals 1 if a command is followed by '&' */
+	char *args[MAX_LINE / +1];/* command line (of 80) has max of 40 arguments */
+	
+
+	struct sigaction handler;
+	handler.sa_handler = handle_SIGINT;
+	sigaction(SIGINT, &handler, NULL);
+
+	strcpy(buffer, "Caught <ctrl><c>\n");
+	while (1){            /* Program terminates normally inside setup */
+		int filedes[2];
+		char buf[BUFSIZ+1];
+		pipe(filedes);
+		background = 0;
+		int setup_value;
+		printf(" COMMAND->\n");
+		setup_value = setup(inputBuffer, args, &background);       /* get next command */
+		if (setup_value == 1){
+			printf("You have make a mistake in this order or the order refered has a mistake!\n");
+			continue;
+		}
+		if (args[0] != NULL) {
+			pid_t pid;
+			pid = fork();
+			if (pid < 0) {
+				fprintf(stderr, "Work Failed!");
+				exit(-1);
+			}
+			else {
+				if (pid == 0) {
+					close(filedes[0]);
+					printf("------I am the child process, my process id is %d.------\n", getpid());
+					write(filedes[1],"true",strlen("true"));
+					execvp(args[0], args);
+					printf("If you see this message, there must be an error!\n");
+					write(filedes[1],"false",strlen("false"));
+					exit(-1);
+				}
+				else {
+					close(filedes[1]);
+					if (background == 0) {
+						wait();
+						int dk = read(filedes[0],buf,BUFSIZ);
+						if (dk == 9){
+							his[(count-1) % 10] = 1;
+						}
+						else his[(count-1) % 10] = 0;
+						printf("------Child first! I am the parent process, my process id is %d.------\n", getpid());
+					}
+					else {
+						printf("------Run in paralell! I am the parent process, my process id is %d.------\n", getpid());
+					}
+				}
+			}
+		}
+
+		/* the steps are:
+		(1) fork a child process using fork()
+		(2) the child process will invoke execvp()
+		(3) if background == 0, the parent will wait,
+		otherwise returns to the setup() function. */
+	}
+}

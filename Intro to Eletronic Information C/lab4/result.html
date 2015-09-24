@@ -1,0 +1,19 @@
+﻿$def with (form,name,qurl,qtitle,qnew_text1,qnew_text2,q_query,total)
+
+<title>Chris的搜索程序</title>
+
+<form name="input" form action="/s" method="GET"> 关键词 :
+<input type="keyword" name="keyword" />
+<input type="submit" value="搜索"/>
+</form>
+<head><h1><strong></strong><font color="purple">Chris Lune的搜索程序</h1><strong></head>
+		<h2><font color="black">搜索关键词为 " $name ":</h2>
+		<h4><font color="black">共有结果 $total 条</h4>
+			<h4><b><font color="black">根据相关法律法规和政策，部分搜索结果未予显示。</h4></b>
+$if qtitle and qurl and len(qnew_text1) and len(qnew_text2):
+	$for i in range(total):
+    	<h3><a href=" $qurl[i] "><font color="blue">$qtitle[i]</a></h3>
+    	<div><i><font color="black">$qnew_text1[i].strip()<font color="red">$q_query[i]<font color="black">$qnew_text2[i].strip() ......</i></div>
+    	<h5><div><font color="green"><i>$qurl[i]</i></div></h5>
+$else:
+    <em>There's no result!</em>!

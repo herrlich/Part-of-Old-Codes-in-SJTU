@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script > 
+function replay(obj){
+ $('replay').value+='回复'+obj.value+'楼\n';
+}
+function $(id){
+ return document.getElementById(id)
+}
+</script>
+</head>
+<body >
+一楼
+<a href="javascript:void 0;" onclick="replay(this)" value="1">回复</a>
+<hr>
+<br>
+二楼
+<a href="javascript:void 0;" onclick="replay(this)" value="2">回复</a>
+<hr>
+<br>
+三楼
+<a href="javascript:void 0;" onclick="replay(this)" value="3">回复</a>
+<hr>
+<br>
+四楼
+<a href="javascript:void 0;" onclick="replay(this)" value="4">回复</a>
+<hr>
+<br>
+<textarea id="replay" cols="100" rows="5">
+</textarea>
+</body>
+<html>

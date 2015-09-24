@@ -1,0 +1,227 @@
+%%==================================================
+%% diss.tex for SJTU Bachelor Thesis
+%% based on CASthesis
+%% version: 0.3a
+%% Encoding: UTF-8
+%%==================================================
+
+% 字号选项: c5size 五号(默认) cs4size 小四
+% 双面打印（注意字号设置）
+%\documentclass[cs4size, a4paper, twoside]{sjtuthesis} 
+% 单面打印（注意字号设置）
+\documentclass[cs4size, a4paer, oneside, openany, nocap]{sjtuthesis} 
+
+\CTEXsetup[aftername={\nobreak\quad}]{chapter}
+\CTEXsetup[format={\centering}]{chapter}
+
+%% My changes below
+\usepackage[ruled,linesnumbered,boxed]{algorithm2e}
+\usepackage{tabularx}
+
+\usepackage{titlesec} 
+              
+%\def\CTEX@chapter@beforeskip{1\p@}
+%\def\CTEX@chapter@afterskip{12\p@}
+\renewcommand{\figurename}{Figure}  
+\renewcommand{\tablename}{Table}
+\renewcommand{\bibname}{REFERENCES}
+
+%% My changes above
+
+% \usepackage[sectionbib]{chapterbib}%每章都用参考文献
+\usepackage{setspace}
+\newboolean{DOIT}
+\setboolean{DOIT}{false}%编译某些只想自己看的内容，编译true，否则false
+
+%% 行距缩放因子(x倍字号)
+\renewcommand{\baselinestretch}{1.3}
+
+% 设置图形文件的搜索路径
+\graphicspath{{figure/}{figures/}{logo/}{logos/}{graph/}{graphs}}
+
+%%========================================
+%% 在sjtuthesis.cls中定义的有用命令
+%%========================================
+% \cndash 中文破折号
+% 数学常量
+% \me 对数常数e
+% \mi 虚数单位i
+% \mj 虚数单位j
+% \dif 直立的微分算符d为直立体。
+% 可伸长的数学箭头、等号
+% \myRightarrow{}{}
+% \myLeftarrow{}{}
+% \myBioarrow{}{}
+% \myLongEqual{}{}
+% 参考文献
+% \upcite{} 上标引用
+%%========================================
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%% 封面
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+% 中文封面内容(关注内容而不是形式)
+\title{基于OpenFlow的数据中心监控负载均衡问题}
+\author{陈宇翔}
+\advisor{高晓沨}
+\degree{学士}
+\school{上海交通大学}
+\institute{电子信息与电气工程学院}
+\studentnumber{5110309783}
+\major{电子信息科学类}
+
+% 英文封面内容(关注内容而不是表现形式)
+\englishtitle{Load balancing in Data Center Networks based on OpenFlow}
+\englishauthor{Yuxiang Chen}
+\englishadvisor{Prof. Xiaofeng Gao}
+\englishschool{Shanghai Jiao Tong University}
+\englishinstitute{Depart of Computer Science and Engineering \\
+  Shanghai Jiao Tong University \\
+  Shanghai, P.R.China}
+\englishdegree{Bachelor}
+\englishmajor{Computer Science}
+\englishdate{May. 16th, 2015}
+
+% 封面
+\maketitle
+
+% 英文封面
+\makeenglishtitle
+
+% 论文原创性声明和使用授权
+\makeDeclareOriginal
+\makeDeclareAuthorization
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%% 前言
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\frontmatter
+\fancypagestyle{plain}{% 设置开章页页眉页脚风格(只有页码作为页脚)
+  \fancyhf{}%
+  \fancyhead[L]{\small {\it \includegraphics[width=0.22\textwidth]{sjtubanner}}}  % 奇数页左页眉
+  \fancyhead[R]{\small {\it Load balancing in Data Center Networks based on OpenFlow}}                   % 奇数页右页眉
+  \fancyfoot[C]{--- {\bf\thepage} ---}      % 页脚
+}
+
+% 摘要
+\include{body/abstract}
+
+% 目录
+\tableofcontents
+% 表格索引
+\listoftables
+% 插图索引
+\listoffigures
+
+% \addcontentsline{toc}{chapter}{\listfigurename} %将表格索引加入全文目录
+% \addcontentsline{toc}{chapter}{\listtablename}  %将图索引加入全文目录
+
+% 主要符号、缩略词对照表
+% \include{body/symbol}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%% 正文
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\mainmatter
+\fancypagestyle{plain}{% 设置开章页页眉页脚风格(只有页码作为页脚)
+  \fancyhf{}%
+  \fancyhead[L]{\small {\it \includegraphics[width=0.22\textwidth]{sjtubanner}}}  % 奇数页左页眉
+  \fancyhead[R]{\small {\it Load balancing in Data Center Networks based on OpenFlow}}                   % 奇数页右页眉
+  %\fancyfoot[C]{\small ~{\bf\thepage}~~{\bf of}~~{\bf\pageref{lastpage}}~}      % 页脚
+  \fancyfoot[C]{\small ~{\bf\thepage}~~{\bf of~~68}~}      % 页脚
+  %\fancyfoot[C]{\small ~{\bf\thepage}~}      % 页脚
+}
+\pagestyle{plain}
+
+%% 各章正文内容
+\include{body/chapter01}
+\include{body/chapter02}
+\include{body/chapter03}
+\include{body/chapter04}
+\include{body/chapter05}
+\include{body/chapter06}
+\include{body/chapter07}
+\include{body/conclusion} %% 全文总结
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%% 附录(章节编号重新计算，使用字母进行编号)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\appendix
+
+% 附录中编号形式是"A-1"的样子
+\renewcommand\theequation{\Alph{chapter}--\arabic{equation}}
+\renewcommand\thefigure{\Alph{chapter}--\arabic{figure}}
+\renewcommand\thetable{\Alph{chapter}--\arabic{table}}
+
+%\include{body/app1} % 更新记录
+%\include{body/app2} % 麦克斯韦方程
+% \include{body/app3}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%% 文后(无章节编号)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\backmatter
+
+% 参考文献
+% 使用 BibTeX
+% 包含参考文献文件.bib
+\begin{thebibliography}{1}
+\bibitem{geni} ``Global Environment for Network Innovations(GENI).'' [Online Website]. Available: http://www.geni.net/
+\bibitem{fire} ``Future Internet Research and Experimentation Initative(FIRE).'' [Online Website]. Available: http://cordis.europa.eu/fp7/ict/fire/
+\bibitem{akari} ``AKARI \& JGN2plus.'' [Online Website]. Available: http://www.nict.go.jp/en/photonic\_nw/archi/akari/akari-top\_e.html
+\bibitem{savi} ``Smart Applications on Virtual Infrastructure(SAVI).'' [Online Website]. Available: http://www.savinetwork.ca/
+\bibitem{openflow}N. McKeown, T. Anderson, H. Balakrishnan, et al. ``OpenFlow: enabling innovation in campus networks,'' \emph{ACM SIGCOMM}, 69-74, 2008.
+\bibitem{ethane} M. Casado, M. J. Freedman, and S. Shenker, ``Ethane: Taking Control of the Enterprise,'' \emph{ACM SIGCOMM}, 2007.
+\bibitem{sane} ``Clean-Slate Security Architecture (SANE).'' [Online Website]. Available: http://www.geni.net/
+\bibitem{4d1} A. Greenberg, G. Hjalmtysson, D. A. Maltz, et al., ``Refactoring network control and management: A case for the 4D architecture ,'' tech. rep., Computer Science Department, Carnegie Mellon University, 2005.
+\bibitem{4d2} A. Greenberg, G. Hjalmtysson, D. A. Maltz, et al., ``A clean slate 4D approach to netw ork control and management,'' \emph{SIGCOMM CCR}, 2005.
+\bibitem{openbook}S. Azodolmolky, ``Software Defined Networking with OpenFlow,'' Packt Publishing Ltd., 2013.
+\bibitem{devolved}AS-W. Tam, K. Xi, and H. Chao. ``Use of devolved controllers in data center networks." \emph{IEEE INFOCOM}, 596-601, 2011.
+\bibitem{devolvedglobecom}AS-W. Tam, K. Xi, and H. Chao. ``Scalability and Resilience in Data Center Networks: Dynamic Flow Reroute as an Example,'' \emph{IEEE GLOBECOM}, 1-6, 2011.
+\bibitem{multictr}Li Y, Dong L, Qu J, et al. ``Multiple controller management in software defined networking,''\emph{SCAC},2014.
+\bibitem{elasticsdn}A. Dixit, F. Hao, et al. ``Towards an elastic distributed sdn controller." \emph{ACM SIGCOMM}, 7-12, 2013.
+\bibitem{lwc}W. Liang, X. Gao, F. Wu, et al., ``Balancing traffic load for devolved controllers in data center networks,'' \emph{GLOBECOM}, 2258-2263, 2014.
+\bibitem{localcen}D. Levin, A.Wundsam, B. Heller, et al. ``Logically centralized?: state distribution trade-offs in software defined networks,''ACM the first workshop on Hot topics in Software Defined Networks (HotSDN), 1-6, 2012.
+\bibitem{dcnarch}M. Al-Fares, A. Loukissas, and A. Vahdat. ``A scalable, commodity data center network architecture,'' \emph{ACM SIGCOMM}, 63-74, 2008.
+\bibitem{onf} ``Open Networking Foundation (ONF),'' [Online Website]. Available: http://www.opennetworking.org/
+\bibitem{opproto} Open Networking Foundation, ``OpenFlow Switch Specification (Version 1.3.0),'' June 2012.
+\bibitem{ryu} ``Ryu SDN Framework,'' [Online Website]. Available: http://osrg.github.io/ryu/
+\bibitem{kandoo}S. Yeganeh and Y. Ganjali. ``Kandoo: a framework for efficient and scalable offloading of control applications." \emph{ACM HotSDN}, 19-24, 2012.
+\bibitem{hedera}M. Al-Fares, S. Radhakrishnan, et al. ``Hedera: Dynamic flow scheduling for data center networks,'' \emph{USENIX NSDI},19-19, 2010.
+\bibitem{spain}J. Mudigonda, et al. ``SPAIN: COTS Data-Center Ethernet for Multipathing over Arbitrary Topologies." \emph{USENIX NSDI}, 265-280, 2010.
+\bibitem{vl2}A. Greenberg, J. Hamilton, N. Jain, et al. ``VL2: a scalable and flexible data center network,'' \emph{ACM SIGCOMM}, 51-62, 2009.
+\bibitem{elastictree}B. Heller, S. Seetharaman, et al. ``ElasticTree: Saving Energy in Data Center Networks'' \emph{USENIX NSDI}, 249-264, 2010.
+\bibitem{flyways}S. Kandula, J. Padhye, and P. Bahl. ``Flyways to de-congest data center networks." \emph{ACM Hotnets-VIII}, 2009.
+\bibitem{hyperflow}A. Tootoonchian, Y. Ganjali. ``HyperFlow: A distributed control plane for OpenFlow." \emph{USENIX INM/WREN}, 3-3, 2010.
+\bibitem{inpacket}C. Macapuna, C. Rothenberg, M. Magalhaes. ``In-packet Bloom filter based data center networking with distributed OpenFlow controllers." \emph{IEEE GLOBECOM}, 584-588, 2010.
+\bibitem{onix}T. Koponen, et al. ``Onix: A Distributed Control Platform for Large-scale Production Networks." \emph{USENIX NSDI}, 1-6, 2010.
+\bibitem{soft}T. V.Lakshman, et al. ``The softrouter architecture,'' \emph{Proc. ACM SIGCOMM Workshop on Hot Topics in Networking}, vol. 2004, 2004.
+\bibitem{DevoFlow} Curtis, Andrew R., et al. ``DevoFlow: Scaling flow management for high-performance networks.'' ACM SIGCOMM Computer Communication Review, 254-265, 2011.
+\bibitem{DAIM} Banjar, Ameen, Pakawat Pupatwibuli, and Robin Braun. ``DAIM: a mechanism to distribute control functions within OpenFlow switches.'' \emph{Journal of Networks}, 1-9, 2014.
+\bibitem{DOT} Roy, Arup Raton, et al. ``Design and management of dot: A distributed openflow testbed.'' Network Operations and Management Symposium (NOMS), 2014.
+\bibitem{B4} S. Jain and al., ``B4: Experience with a Globally-Deployed Software Defined WAN,'' ACM International Conference on the applications, technologies, architectures, and protocols for computer communication (SIGCOMM), 2013.
+\end{thebibliography}
+
+%% 个人简历(学士学位论文没有个人简历要求)
+% \include{body/resume}
+
+% 致谢
+\include{body/ack}
+
+% 发表文章目录
+%\include{body/pub}
+
+% 参与项目列表
+%\include{body/projects}
+
+%英文大摘要
+%\include{body/bigabstract}
+
+\end{document}

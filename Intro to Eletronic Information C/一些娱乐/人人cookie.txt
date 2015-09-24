@@ -1,0 +1,7 @@
+cookie = {"t": "4bb8e627dd4040f9eb55a89201eb72542"}
+cookie = "".join(x + "=" + cookie[x] + ";" for x in cookie)
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+urllib2.install_opener(opener)
+req = urllib2.Request("http://www.renren.com/729595072/profile")
+req.add_header('Cookie', cookie)
+content = urllib2.urlopen(req).read()

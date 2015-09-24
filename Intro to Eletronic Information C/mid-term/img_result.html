@@ -1,0 +1,33 @@
+﻿$def with (form,name,qurl,qtitle,qimgurl,total)
+<html>
+	<head>
+	<title>Chris的搜索程序</title>
+	<a href="/" >网页</a>
+	图片
+	<form name="input" form action="/im" method="GET"> 关键词 :
+		<input type="keyword" name="keyword" />
+		<input type="submit" value="元芳一下"/>
+	</form>
+	<style type="text/css">
+		div.container{width:100%;margin:5px;border:3px solid blue;line-height:150%;color:purple;background-color:pink}
+		div.scontainer{width:320px;height:240px;margin:5px;border:3px solid pink;line-height:100%;float:left}
+		div.content{margin:0px;padding:3px;max-height:220px}
+	</style>
+	</head>
+	<body>
+		<div class="container"><div class="content"><h2>搜索关键词为 " $name "</h2></div></div>
+		$if total:
+			$for i in range(total):
+				<div class="scontainer">
+					<div class="content">
+						<h4><a href=" $qurl[i] ">$qtitle[i]</a></h4>
+						<img src=" $qimgurl[i] "></div></div>
+		$else:
+			<div class="container">
+				<div class="content">
+				<h2>根据相关法律法规和政策，部分搜索结果未予显示</h2>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

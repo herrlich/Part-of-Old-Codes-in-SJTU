@@ -1,0 +1,6 @@
+\contentsline {section}{\numberline {1}The Purpose of This Experiment and My Preparation}{1}
+\contentsline {section}{\numberline {2}The Main Part of the Experiment}{1}
+\contentsline {subsection}{\numberline {2.1}Making an Index First}{1}
+\contentsline {subsection}{\numberline {2.2}The Part of Establishing the Web Page}{9}
+\contentsline {section}{\numberline {3}The Main Searching Part of the Program}{12}
+\contentsline {section}{\numberline {4}The Problems I Met and My Thoughts}{16}

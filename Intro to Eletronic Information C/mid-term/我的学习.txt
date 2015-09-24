@@ -1,0 +1,29 @@
+div.container{width:10%;margin:0px;border:5px solid purple;line-height:50%;}
+中，width是这个方框的宽度，line-height是长度，border是边界宽度，margin好像是左边距和上边距
+padding检索或设置对象四边的补丁边距。
+如果提供全部四个参数值，将按上－右－下－左的顺序作用于四边。
+如果只提供一个，将用于全部的四条边
+
+div.header,div.footer{padding:0.5em;color:yellow;background-color:pink;clear:left;}
+中，padding是header和footer框的上下距离（宽度），color是在上下框中字体的颜色，background是框内背景颜色，clear是none : 　允许两边都可以有浮动对象
+both : 　不允许有浮动对象
+left : 　不允许左边有浮动对象
+right : 　不允许右边有浮动对象
+
+em为字体高 1em=16px
+
+
+h1.header{padding:5em;margin:0;}
+中，padding是header框的上下距离，margin是检索或设置对象四边的外延边距。
+如果提供全部四个参数值，将按上－右－下－左的顺序作用于四边。
+如果只提供一个，将用于全部的四边。
+
+语法：
+ 
+float : none | left |right 
+ 
+参数：
+ 
+none : 　对象不浮动
+left : 　对象浮在左边
+right : 　对象浮在右边

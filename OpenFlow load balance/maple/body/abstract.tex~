@@ -1,0 +1,53 @@
+%%==================================================
+%% abstract.tex for SJTU Bachelor Thesis
+%% version: 0.5.2
+%% Encoding: UTF-8
+%%==================================================
+\pagestyle{frontmatter}
+
+\begin{abstract}
+
+	软件定义网络（Software Defined Network， SDN）是近几年来在计算机网络领域兴起的概念，其主要目标是通过对网络的控制和管理进行精简，来利用网络的可编程性，达到促进网络优化的目的。SDN作为一种新的网络模式，可以将硬件的功能进行划分，把执行数据包转发的部分从硬件的控制决策部分中分离出来。这种对控制逻辑的分离，将以前集成在硬件中的控制部分抽象成一个由软件定义的控制器，从而使得整个网络的配置更加灵活。
+
+	从整体结构上来看，SDN中的控制功能（控制平面）被集中到了一个基于软件的控制器，而网络中的硬件设备则主要用于实现数据包的转发（数据平面）。要使得数据平面和控制平面可以进行沟通，就需要一个可编程的接口对这两部分进行连接，OpenFlow则是由斯坦福大学提出的用于SDN的一个接口的实现。
+
+	而数据中心网络（Data Center Network， DCN）则是一个更加广为人知的概念。在当今的网络形势下，越来越多的公司致力于提供云端服务，这就必然涉及到提供云服务的数据中心中的负载均衡问题。而我们这篇文章则将数据中心的负载均衡定义在OpenFlow的框架下，提供一种在SDN环境下提高DCN性能的解决方案。
+
+	一个一般的SDN网络主要由控制器（controller），交换机（switch）和主机（host）组成，每个交换机可以控制若干个主机，每个控制器也可以控制若干个交换机。由于主机之间要不停地进行通信，因此会在整个网络中产生流量。因此，交换机需要对这些网络流量（数据包）进行转发。由于每个交换机转发的流量不同，因此也会有不同的负载。而在每个交换机之上，还有控制器对交换机的流量进行转发。对于目前较为普遍的SDN网络，整个网络中一般由一个集中式的控制器来控制所有交换机的转发逻辑，而这个唯一的控制器在大型网络中将很可能成为整个网络的瓶颈。
+
+	在最近的文献中，可以看到，很多学者致力于对分布式控制器的研究，并提出了在DCN中部署多个控制器的想法。在一个可以实现OpenFlow协议的网络中部署多个控制器，可以有效地将不同交换机的控制交给不同的控制器，从而尽量消除唯一的控制器成为瓶颈的可能性。但是如果只是随机地将交换机分配给控制器，或者是通过某种初始化算法分配后一直维持控制器和交换机的对应关系，则可能会因为网络中的流量变化而导致控制器间的负载出现不均衡，从而造成网络的局部瓶颈，影响整个网络的性能。
+
+	因此，提供一种在网络状态变化时可以动态迁移交换机的方法是十分必要的。通过将交换机从负载较重的控制器迁移到负载相对较轻的控制器中，可以对控制器的负载实现平衡。为了解决这一问题，本文首先建立了在能实现OpenFlow协议的DCN网络中多控制器和多交换机的负载均衡模型，同时借鉴前人在数据中心中部署多个控制器来控制网络流量的算法，来设计适用于OpenFlow框架的多控制器负载均衡算法，并通过仿真实验来验证负载均衡算法在网络中的有效性。
+
+	上述算法的主要原理是通过收集网络中交换机的负载信息，来计算每个控制器的平均负载，然后将超过平均负载的控制器所管理的交换机向未超过负载的控制器进行迁移，从而使控制器的负载达到均衡的状态。但是在实际的网络中，这种负载均衡方法存在着很多的局限性。实际上，每个控制器由于自身性能的局限性，可以处理的负载是有其上限的，因此本文又提出了一种改进的算法。通过计算网络中的当前流量，同时计算所有可用控制器的性能上限，来计算控制器可用性能的平均百分比，并以此分配每个控制器的“平均”容量。这种方法通过计算平均性能百分比，使得所有的控制器都会处在相对均衡的状态进行工作，依照其处理能力的不同而执行不同的任务量。
+
+	除此之外，在一个大型分布式网络中，控制器和交换机可能分布在任何地方。也就是说，控制器之间可以相隔很远，而控制器与其可以控制的交换机之间也可能相隔很远。在这种情况下，如果将交换机的控制权交给与它相对较近的控制器无疑会提高网络流的处理速度，进而提高网络的性能。因此，本文同时也提出了用于有不同优先级（权值）的交换机的迁移算法，通过以交换机的权值为最优先标准，来对控制器的负载进行均衡。
+
+	通过对上述算法进行实现并进行仿真实验，我们验证了算法的有效性与在SDN网络中部署这些算法的可能性，从而为大型SDN网络的负载均衡提供了可能的实现方案。
+
+  \keywords{负载均衡，多控制器，软件定义网络，负载上限}
+\end{abstract}
+
+\begin{englishabstract}
+
+Software Defined Network(SDN) is a concept in the area of computer network, which becomes very popular recent years. The main purpose of SDN is to simplify the control and management of the network, thus making use of the programming ability of SDN. As a new pattern of computer network, SDN can divide the function of the hardware into two parts, i.e., taking the part that forwards data packets out of the control desicion part. By spliting up the two functions, the controller part which used to be integrated in hardware now become a software-defined controller, which makes the configuration of the whole network more flexible.
+
+Viewing the structure as a whole, the control function(control plane) is centralized as a software defined controller, and the hardware devices are mainly used in implementing the forwarding of data packets(data plane). In order to connect these two planes, a set of application programming interface(API) is needed, and OpenFlow is a realization of this kind of API in SDN, raising by Stanford University.
+
+And Data Center Network (DCN) is a more popular concept. In current network situation, more and more companies aim at providing customers with cloud services, which will certainly involve the problem of load balancing in a data center. And in this paper, we will provide a practical scheme to be used in SDN environment, in order to improve the performance of a DCN that is defined under the OpenFlow structure.
+
+A general SDN network is mainly composed of controller, switch and host. A switch can control several hosts, and a controller can control several switches. As a result of the lasting communication among all the hosts, traffic will be generated in the network. And the switches have to forward these packets. Since each host generates different amount of traffic, each switch may have different load. In the kind of SDN that is very popular nowadays, a central controller is usually used to take control of the forwarding schemes of all switches. However, this only controller is very likely to become the bottleneck in a very large network.
+
+From recent publications, we can see that many scholars are engaged in the research of devolved controllers, and come up with the idea of deploying multiple controllers in DCN. In a network that implements the OpenFlow protocols, deploying multiple controllers can help the effectively migration of switches between two controllers, and thus avoid the situation of a central overloaded controller. However, if we just randomly distribute switches to controllers, or keep the mapping of controllers and switches unchanged after initialization, then as a result of traffic changing over time, the load among all controllers may become unbalanced, giving rise to local bottlenecks in the network, and decreasing the performance of the network.
+
+Thus, it is very necessary to come up with a method that can dynamically migrate the switches according to current network conditions. By migrate the switches from overloaded controllers to controllers that have comparatively less load, we can balance the load in the whole network. To solve this problem, this paper first establishes a model of multiple controllers and multiple switches in a software defined network that implements OpenFlow protocol, and then refer to the load balancing algorithms of several controllers raised in Data Center Networks to design an algorithm, that can be used in OpenFlow structure for load balancing of multiple controllers. Then we use simulation to prove the effectiveness of this algorithm.
+
+The main idea of the above algorithm is to collect the load information of switches and controllers in the network, and calculate the average load that should be allocated to each controller. Then for those controllers that exceed the average load, we have to migrate the switches that are controlled by these controllers, to the controllers that are under the average level, and thus trying to balance the load in the network. However, in actual networks, the method have some limits. In fact, each controller can only process a limited load not exceeding its ability. Thus this paper raised another improved algorithm to solve this problem. By calculating the current traffic in the network and the maximal load that can be processed by all controllers in the network, we can get a percentage, which implicates the adequate amount of traffic that a controller should take. And then with this percentage, we can calculate the real 'average' of each controller, and migrate the switches according to this value. This method makes use of this percentage, and make all the controllers working in a comparatively balanced condition -- processing different load refering to its maximal ability.
+
+Apart from this, in a large distributed network, controllers and switches can be placed in any places. That is to say, there may be a very long distance between the controllers, and there may also be a very long distance between the switches and its potential/real(slave/master) controllers. In this condition, if we give the control power of a certain switch to the controller that is near to it, it will certainly help increase the processing speed of traffic, and thus improve the performance of this network. Thus, we also raise an migration algorithm that take the priority(weight) of each switch into consideration. By give the highest priority to the weight of switches, we balance the load of the whole network. 
+
+By implementing all above algorthms and doing simulations, we prove the effectiveness of the algorithms and the possibity of deploying these algorithms in real software defined networks,thus bringing up with possible schemes of load balancing in large SDN.
+
+  \englishkeywords{\large Load Balancing, Limited Ability, Multiple Controllers, Software Defined Network, OpenFlow}
+  
+\end{englishabstract}

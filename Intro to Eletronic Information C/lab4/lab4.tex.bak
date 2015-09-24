@@ -1,0 +1,428 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{graphicx}
+\author{Yuxiang Chen 5110309783}
+\title{Report of Lab4}
+\begin{document}
+\maketitle
+\tableofcontents
+\section{The Purpose of Lab4 and My Preparation}
+It is definitely sure that we have to build our own search engine by ourselves. But how to write such a program that enables us to search certain information in a graphic user interface, e.g. in a web page(port)? The framework 'web.py' gives us the chance.\\
+In this experiment, we need to learn how to use this framework to visit a certain server where we can do our searching jobs. To accomplish this experiment, I look up many things in the website introducing web in python, and find that 'web.py' is just a framework that makes it possible to connect our searching programs with the html lists. And there are also some other things to do, such as print out the url, main contents and the title of the web page in the form of a hyperlink.
+\section{The Main Part of the Experiment}
+To make it easy to understand, I split this experiment into three parts, which consists of setting up an index, searching for information you required and establishing the framework of the html page to be presented later.
+\subsection{Making an Index First}
+This part is mainly the same as the experiments we did earlier, except that we need to do some work to analyse and store the text in the neighborhood of the keyword requested. And we also need to exclude the useless messages in the content of the page, such as how the web site set up the html page. And I will present them in the following codes:\\
+\begin{lstlisting}[language=python,numbers=left,frame=leftline] import sys, os, lucene, threading, time,chardet,urllib2
+from datetime import datetime
+from BeautifulSoup import BeautifulSoup
+from ctypes import *
+import re
+import string
+
+def filter_tags(htmlstr):
+    re_cdata=re.compile('//<!\[CDATA\[[^>]*//\]\]>',re.I)
+    re_script=re.compile('<\s*script[^>]*>[^<]*<\s*/\s*script\s*>',re.I)
+    re_style=re.compile('<\s*style[^>]*>[^<]*<\s*/\s*style\s*>',re.I)
+    re_br=re.compile('<br\s*?/?>')
+    re_h=re.compile('</?\w+[^>]*>')
+    re_comment=re.compile('<!--[^>]*-->')
+    s=re_cdata.sub('',htmlstr)
+    s=re_script.sub('',s)
+    s=re_style.sub('',s)
+    s=re_br.sub('\n',s)
+    s=re_h.sub('',s)
+    s=re_comment.sub('',s)
+    blank_line=re.compile('\n+')
+    s=blank_line.sub('\n',s)
+    s=replaceCharEntity(s)
+    return s
+
+
+def replaceCharEntity(htmlstr):
+    CHAR_ENTITIES={'nbsp':' ','160':' ','lt':'<','60':'<','gt':'>','62':'>','amp':'&','38':'&','quot':'"','34':'"',}
+    re_charEntity=re.compile(r'&#?(?P<name>\w+);')
+    sz=re_charEntity.search(htmlstr)
+    while sz:
+        entity=sz.group()
+        key=sz.group('name')
+        try:
+            htmlstr=re_charEntity.sub(CHAR_ENTITIES[key],htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+        except KeyError:
+            htmlstr=re_charEntity.sub('',htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+    return htmlstr
+
+
+def repalce(s,re_exp,repl_string):
+    return re_exp.sub(repl_string,s)
+
+
+class Ticker(object):
+
+    def __init__(self):
+        self.tick = True
+
+    def run(self):
+        while self.tick:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            time.sleep(1.0)
+
+class IndexFiles(object):
+    """Usage: python IndexFiles <doc_directory>"""
+
+    def __init__(self, root, storeDir, analyzer):
+
+        if not os.path.exists(storeDir):
+            os.mkdir(storeDir)
+        store = lucene.SimpleFSDirectory(lucene.File(storeDir))
+        writer = lucene.IndexWriter(store, analyzer, True,
+                                    lucene.IndexWriter.MaxFieldLength.LIMITED)
+        writer.setMaxFieldLength(1048576)
+        self.indexDocs(root, writer)
+        ticker = Ticker()
+        print 'optimizing index',
+        threading.Thread(target=ticker.run).start()
+        writer.optimize()
+        writer.close()
+        ticker.tick = False
+        print 'done'
+
+    def indexDocs(self, root, writer):
+        for root, dirnames, filenames in os.walk(root):
+            for filename in filenames:
+                if filename.endswith('.txt'):
+                    continue
+                print "adding", filename
+                try:
+                    path = os.path.join(root, filename)
+                    file = open(path)
+                    buf = file.read()
+                    contents=buf
+                    result = chardet.detect(buf)['encoding']
+                    if result=='GB2312':
+                        contents = buf.decode('gbk').encode('utf8')
+                    file.close()
+                    soup=BeautifulSoup(contents)
+                    url=mydict[filename]
+                    title=str(soup.head.title.string).decode('utf8')
+                    new_contents=filter_tags(contents)
+                    new_contents=str(new_contents).strip().decode('utf8')
+                    pos=new_contents.find('>')
+                    new_contents=new_contents[pos+1:]
+                    temp=new_contents.split()
+                    newtext=' '.join(temp)
+                    contents=''.join(soup.findAll(text=True))
+                    doc = lucene.Document()
+                    doc.add(lucene.Field("text", newtext,
+                                         lucene.Field.Store.YES,
+                                         lucene.Field.Index.NOT_ANALYZED))
+                    doc.add(lucene.Field("url", url,
+                                         lucene.Field.Store.YES,
+                                         lucene.Field.Index.NOT_ANALYZED))
+                    doc.add(lucene.Field("title", title,
+                                         lucene.Field.Store.YES,
+                                         lucene.Field.Index.NOT_ANALYZED))
+                    if len(contents) > 0:
+                        dll=cdll.LoadLibrary("F:\\ICTCLAS50_Windows_32_C\ICTCLAS50.dll")
+                        dll.ICTCLAS_Init(c_char_p("F:\\ICTCLAS50_Windows_32_C"))
+                        strlen = len(c_char_p(contents).value)
+                        t =c_buffer(strlen*6)
+                        bSuccess = dll.ICTCLAS_ParagraphProcess(c_char_p(contents),c_int(strlen),t,c_int(0),0)
+                        contents=t.value.decode('gbk').encode('utf8')
+                        ##list=t.value.split()
+                        ##print ' '.join(list)
+                        dll.ICTCLAS_Exit()
+                        doc.add(lucene.Field("contents", contents,
+                                             lucene.Field.Store.NO,
+                                             lucene.Field.Index.ANALYZED))
+                    else:
+                        print "warning: no content in %s" % filename
+                    writer.addDocument(doc)
+                except Exception, e:
+                    print "Failed in indexDocs:", e
+
+if __name__ == '__main__':
+##    if len(sys.argv) < 2:
+##        print IndexFiles.__doc__
+##        sys.exit(1)
+    lucene.initVM()
+    print 'lucene', lucene.VERSION
+    start = datetime.now()
+    dic= open('F:\\html\index.txt')
+    d = dic.readlines()
+    dic.close()
+    mydict = {}
+    for word in d:
+        value=''
+        try:
+            key = word.split(';')[0]
+            value = word.split(';')[1]
+            mydict[key] = value
+        except:
+            pass
+    try:
+##        IndexFiles(sys.argv[1], "index", lucene.SimpleAnalyzer(lucene.Version.LUCENE_CURRENT))
+        IndexFiles('F:\\html', "F:\\index", lucene.SimpleAnalyzer(lucene.Version.LUCENE_CURRENT))
+        end = datetime.now()
+        print end - start
+    except Exception, e:
+        print "Failed: ", e
+
+\end{lstlisting}
+So after this part, most of the useless information in the web page is eliminated, leaving the messages we need in the 'text' variable. There's any output after the program being processed. So only the screenshot of the index files will be given.\\
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{0.png}
+\caption{the files of the index}
+\end{figure}
+\subsection{The Main Searching Part of the Program}
+In this part, I will show you the main process of searching according to a user's query. And I try my best to make it as flexible as it could. E.g., if you search for a certain Chinese word, the program will search it by treating the word as a whole expression and then treating it as maybe two words by split them. So in this way, I try to return as much information as I can. And for other potential errors, I deal with the 'try...except' sentence.\\
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+import web
+from web import form
+import urllib2
+import os
+from lucene import \
+    QueryParser, IndexSearcher, SimpleAnalyzer, SimpleFSDirectory, File, \
+    VERSION, initVM, Version
+from ctypes import *
+
+urls = (
+    '/', 'index',
+    '/s', 's'
+)
+
+
+render = web.template.render('templates') # your templates
+
+login = form.Form(
+    form.Textbox('keyword'),
+    form.Button('Search'),
+)
+
+def func(command, searcher, analyzer):
+    if len(command) > 0:
+        dll=cdll.LoadLibrary("F:\\ICTCLAS50_Windows_32_C\ICTCLAS50.dll")
+        dll.ICTCLAS_Init(c_char_p("F:\\ICTCLAS50_Windows_32_C"))
+        strlen = len(c_char_p(command).value)
+        t =c_buffer(strlen*6)
+        bSuccess = dll.ICTCLAS_ParagraphProcess(c_char_p(command),c_int(strlen),t,c_int(0),0)
+        command=t.value.decode('gbk').encode('utf8')
+        ##list=t.value.split()
+        ##print ' '.join(list)
+        dll.ICTCLAS_Exit()
+        command=command.decode('utf8')
+    query = QueryParser(Version.LUCENE_CURRENT, "contents",analyzer).parse(command)
+    scoreDocs = searcher.search(query, 50).scoreDocs
+    total=len(scoreDocs)
+    qtitle=[]
+    qurl=[]
+    qnew_text1=[]
+    qnew_text2=[]
+    q_query=[]
+    new_query=str(query).replace ('contents:','').decode('utf8')
+    if total==0:
+        return command,qurl,qtitle,qnew_text1,qnew_text2,q_query,total
+    for scoreDoc in scoreDocs:
+        doc = searcher.doc(scoreDoc.doc)
+        text=doc.get("text")
+        new_text=str(text).decode('utf8')
+        temp_query=new_query.replace(' ','')
+        num=new_text.find(temp_query)
+        query_len=len(temp_query)
+        splited_query=new_query.split(' ')
+        splitlen=len(splited_query)
+        if (num!=-1):
+            try:
+                new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+            except:
+                try:
+                    new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                    new_text2=""
+                except:
+                    try:
+                        new_text1=""
+                        new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+                    except:
+                        new_text1=""
+                        new_text2=""
+            q_query.append(temp_query)
+        else:
+            for i in range(splitlen):
+                parted_query=splited_query[i].decode('utf8')
+                num=new_text.find(parted_query)
+                if num==-1:
+                    continue
+                query_len=len(parted_query)
+                try:
+                    new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                    new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+                except:
+                    try:
+                        new_text1=str(new_text[num-30:num]).strip().decode('utf8','ignore')
+                        new_text2=""
+                    except:
+                        try:
+                            new_text1=""
+                            new_text2=str(new_text[num+query_len:num+30+query_len]).strip().decode('utf8','ignore')
+                        except:
+                            new_text1=""
+                            new_text2=""
+                q_query.append(parted_query)
+                break
+            if num==-1:
+                total=total-1
+                continue
+        title=doc.get("title")
+        url=doc.get("url")
+        qurl.append(url)
+        qtitle.append(title)
+        qnew_text1.append(new_text1)
+        qnew_text2.append(new_text2)
+    return command,qurl,qtitle,qnew_text1,qnew_text2,q_query,total
+
+class index:
+    def GET(self):
+        f = login()
+        return render.formtest(f)
+
+class s:
+    def GET(self):
+        vm_env = initVM()
+        form1 = login()
+        user_data = web.input()
+        vm_env.attachCurrentThread()
+        STORE_DIR = "F:\\index"
+        directory = SimpleFSDirectory(File(STORE_DIR))
+        searcher = IndexSearcher(directory, True)
+        analyzer = SimpleAnalyzer(Version.LUCENE_CURRENT)
+        a,b,c,d,e,f,g= func(user_data.keyword,searcher,analyzer)
+        searcher.close()
+        return render.result(form1,a,b,c,d,e,f,g)
+
+if __name__ == "__main__":
+    while True:
+        app = web.application(urls, globals())
+        app.run()
+        
+\end{lstlisting}
+Of course, the web pages to be presented afterwards are also included in the above part, but how to set up the web page will be presented in the next part. And in order to make the pages a little more beautiful, I revised some of the variables when necessary. And the other parts are nearly the same as the 'search' program in lab3.\\
+The pictures will be given after I finished introducing the 'html' part.
+\subsection{The Part of Establishing the Web Page}
+In this part, I wrote two html files for the searching web page, and as required, it can present the url, some contents near the keywords, and title in the form of a hyperlink of the result. Here are the codes of the two pages:\\
+The first is the formtest.html:
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$def with(form)
+<head>
+<title>Chris的搜索程序</title>
+<form name="input" form action="/s" method="GET"> 关键词 :
+<input type="keyword" name="keyword" />
+<input type="submit" value="元芳一下"/>
+</form>
+
+\end{lstlisting}
+There are some parts written in Chinese which can't be showed in the pdf file, you can look for it in my code files. And the following is the result.html:
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$def with (form,name,qurl,qtitle,qnew_text1,qnew_text2,q_query,total)
+
+<title>Chris的搜索程序</title>
+<form name="input" form action="/s" method="GET"> 关键词 :
+<input type="keyword" name="keyword" />
+<input type="submit" value="元芳一下"/>
+</form>
+<head><h1><strong></strong><font color="purple">Chris Lune的搜索程序</h1><strong></head>
+		<h2><font color="black">搜索关键词为 " $name ":</h2>
+		<h4><font color="black">共有结果 $total 条</h4>
+			<h4><b><font color="black">根据相关法律法规和政策，部分搜索结果未予显示（恶搞一下……）。</h4></b>
+$if qtitle and qurl and len(qnew_text1) and len(qnew_text2):
+	$for i in range(total):
+    	<h3><a href=" $qurl[i] "><font color="blue">$qtitle[i]</a></h3>
+    	<div><i><font color="black">$qnew_text1[i].strip()<font color="red">$q_query[i]<font color="black">$qnew_text2[i].strip() ......</i></div>
+    	<h5><div><font color="green"><i>$qurl[i]</i></div></h5>
+$else:
+    <em>There's no result!</em>!
+    
+\end{lstlisting}
+So after these preparations, the result of the searching program is shown in the following screenshots:
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{1.png}
+\caption{the outcome 1}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{2.png}
+\caption{the outcome 2}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{3.png}
+\caption{the outcome 3}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{4.png}
+\caption{the outcome 4}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=10cm]{5.png}
+\caption{the outcome 5}
+\end{figure}
+\section{The Problems I Met in the Experiment and My Solution}
+As for the first part, the main problem I meet is how to eliminate the useless information near the key words, and after looking for some solutions on the Internet, I find the following method to solve it:\\
+\begin{lstlisting}[language=python,numbers=left,frame=leftline]
+import re
+def filter_tags(htmlstr):
+    re_cdata=re.compile('//<!\[CDATA\[[^>]*//\]\]>',re.I) 
+    re_script=re.compile('<\s*script[^>]*>[^<]*<\s*/\s*script\s*>',re.I)
+    re_style=re.compile('<\s*style[^>]*>[^<]*<\s*/\s*style\s*>',re.I)
+    re_br=re.compile('<br\s*?/?>')
+    re_h=re.compile('</?\w+[^>]*>')
+    re_comment=re.compile('<!--[^>]*-->')
+    s=re_cdata.sub('',htmlstr)
+    s=re_script.sub('',s)
+    s=re_style.sub('',s)
+    s=re_br.sub('\n',s)
+    s=re_h.sub('',s)
+    s=re_comment.sub('',s)
+    blank_line=re.compile('\n+')
+    s=blank_line.sub('\n',s)
+    s=replaceCharEntity(s)
+    return s。
+
+
+def replaceCharEntity(htmlstr):
+    CHAR_ENTITIES={'nbsp':' ','160':' ','lt':'<','60':'<','gt':'>','62':'>','amp':'&','38':'&','quot':'"','34':'"',}
+    re_charEntity=re.compile(r'&#?(?P<name>\w+);')
+    sz=re_charEntity.search(htmlstr)
+    while sz:
+        entity=sz.group()
+        key=sz.group('name')
+        try:
+            htmlstr=re_charEntity.sub(CHAR_ENTITIES[key],htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+        except KeyError:
+            htmlstr=re_charEntity.sub('',htmlstr,1)
+            sz=re_charEntity.search(htmlstr)
+    return htmlstr
+
+\end{lstlisting}
+Then in this way, we can change some marks into the punctuations they present, and also delete some other messages such as the tag of the page, etc.\\
+And in the second searching part, there are to many errors to deal with, and I write all solutions to the conditions I have met in the 'try...except' clause. Also, in the last part, I firstly have some trouble with giving out all results using a circling clause, then I learn how to solve it from the reference web site. And below are the codes:
+\begin{lstlisting}[language=html,numbers=left,frame=leftline]
+$for i in range(total):
+    	<h3><a href=" $qurl[i] "><font color="blue">$qtitle[i]</a></h3>
+    	<div><i><font color="black">$qnew_text1[i].strip()<font color="red">$q_query[i]<font color="black">$qnew_text2[i].strip() ......</i></div>
+    	<h5><div><font color="green"><i>$qurl[i]</i></div></h5>
+
+\end{lstlisting}
+And after solving these problems ,I basically finish the searching program.
+\section{Some of My Thoughts}
+In lab4, it's easy to find that we are able to write some part of our own searching engine by ourselves. Although at first I'm a little unfamiliar with how to write some clause in the html file, I manage to solve it by learning from the Internet. And now I feel some kind of satisfied by searching for some queries using my own searching files. And now that we have finished the searching program of texts in the page, I think it's also not hard to search and return some images in the same way.\\
+But there may still exist some mistakes which I haven't found in my program yet, so I'll still testing it in the following days, trying to make it as perfect as I want.
+\end{document}

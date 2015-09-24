@@ -1,0 +1,43 @@
+%%==================================================
+%% thanks.tex for SJTU Bachelor Thesis
+%% version: 0.5.2
+%% Encoding: UTF-8
+%%==================================================
+
+\begin{thanks}
+
+Here, I sincerely express my gratitude to all those who have ever helped me to accomplish this topic during my last few months in Shanghai Jiao Tong University. The selfless and enthusiasim of them really helps a lot in my algorithm designing part and my evalution part. 
+
+Firstly, I have to appreciate my supervisor, Professor Xiaofeng Gao, for her valuable advices and selfless assistance in the whole process. 首先我要感谢我的导师高晓沨老师, 在我的本科阶段以及整个毕业设计过
+程中对我各方面的悉心指导。进入了高老师组内后,进行了各个方向的有深度
+与广度的学习。在毕业设计的选题上,高老师对我们进行了很多培训,并通过
+一个其他组的 survey 发现了一个很适合做的题目,并且给予了我很大的选择自
+由和方向指导,我对于这个题目也很感兴趣,于是在频繁讨论的基础上, 开始
+确定研究这个题目。在整个项目开展期间,高老师和我进行了深层次研究与讨
+论并且将自己的研究成果与技术耐心的教导与我,让我能够快速找到应对方式
+与方法解决所遇到的问题。第一次撰写论文遇到了无数问题, 高老师总会及时
+的给予我鼓励与帮助, 传授给我撰写论文的经验与技巧。高老师的耐心指导与
+帮助是我圆满完成毕业设计的关键。
+同时, 感谢已经毕业的魏炜学长, 他有很多的学术经验与技巧, 他在模型背
+景定义与数据中心网络结构上给了我极大的帮助与支持, 我们共同完成了整个
+系统模型的定义与背景。并且, 魏炜学长帮助我完成了模型的仿真测试和分析
+插图的绘制, 使得我得以尽快完稿。
+还要感谢先进网络工作组实验室的吴帆老师和陈贵海老师, 对我的文章进
+行细致的修改, 并给我提供宝贵的意见,还要感谢实验室的各位同学们,在我
+遇到难题需要帮助时,是你们帮助,让我的学术路程能够顺利的进行下去。
+最后要感谢交大计算机系,他给了我一个良好的学习环境和优秀的学习资
+源,让我能够在本科阶段不断提升、锻炼自己。
+
+The deepest of my gratitude goes foremost and first to my supervisor, Professor Xiaofeng Gao, for her useful suggestions and instructive advice on my thesis. I am deeply grateful of her selfless assistance in the completion of this paper. From the very beginning, she has walked me through all stages of the writing of this paper. She provided me with not only the preliminary knowledge of cloud computing but also inspiring ideas on improvement implementation. Without her illuminating and consistent instruction, this thesis could not have reached its present form. She also guide me a lot during the publication of the conference version of this article. With her incessant help, the conference version of this paper was finally accepted by $25^{th}$ International Conference on Database and Expert Systems. I would like to express my thanks to Professor Gao from the bottom of my heat again.
+
+Then, high tribute should be paid to Mr. Wanchao Liang, whose profound knowledge of programming and simulation work assist me a lot in evaluating the performance and efficiency of this design. Without his effort, I am not able to compare my work with previous design and prove the feasibility of this work. I appreciate it a lot for his accompany during the publication of the conference version. I really cherish those memories that we fought together every day and night. 
+
+I am also deeply indebted to all the other tutors and teachers in Advanced Network Laboratory for their direct and indirect help to me. I've been in ANL for about two years, and I learned a lot about research work and laboratory life here. It is grateful to stay with all of the members here for me.
+
+Special thanks should definitely go to my friends and schoolmates who have put considerable time and effort into their comments on the draft. It is them who cheered me up when I felt blue and down. Some of them also inspired me a lot when we are discussing together, which facilitate the completion of this article. I also owe my sincere gratitude to my friends and my fellow classmates who gave me their help and time in listening to me and helping me work out my problems during the difficult course of the thesis.
+
+I'd also like to express my thanks to my schoolmates in Computer Science Department, with whom I fought together all these four years. Some of them also helped me solving those layout problems during this paper.
+
+Finally, my thanks would go to my beloved family members, for their loving considerations and great confidence in me all through these years. They are really considerable for me with my everyday life and they support me in finance to help me go through my studies in college.
+\end{thanks}
+

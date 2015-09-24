@@ -1,0 +1,10 @@
+大体按照百度文库的步骤即可。但是在中间的环节，在vc++目录下进行添加时，添加的目录为：
+D:\Program Files\OpenCV 23\OpenCV2.3\build\include
+D:\Program Files\OpenCV 23\OpenCV2.3\build\include\opencv
+D:\Program Files\OpenCV 23\OpenCV2.3\build\include\opencv2
+
+而且要根据安装的版本改写依赖附加项中的数字，如230 。 同时，在依赖附加项中，百度文库上2.4.3中有的lib文件在2.3.0中没有出现，所以要根据实际情况改变。
+
+同时，在最后运行时可能会出现缺少msvcp100d.dll和msvcr100d.dll的情况，这时可下载这两个dll文件并添加到syswow64文件夹下。
+
+在执行程序时，若要打开某个文件夹下的文件，则路径为D:\\My Pictures\\001.jpg。

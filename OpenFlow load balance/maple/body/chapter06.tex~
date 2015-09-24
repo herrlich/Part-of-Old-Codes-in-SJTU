@@ -1,0 +1,18 @@
+%%==================================================
+%% chapter03.tex for SJTU Bachelor Thesis
+%% version: 0.5.2
+%% Encoding: UTF-8
+%%==================================================
+
+% \bibliographystyle{sjtu2} %[此处用于每章都生产参考文献]
+
+\chapter{Further Discussion}
+\label{chap:discuss}
+
+Then we make some further discussion on the LBMC problem. In the schemes we presented, we mainly devided the process into two phases: the initialization phase and the migration phase. In a DCN that deploys OpenFlow protocol, we only need to execute the initialization once, and then do migration periodically. The original schemes for controllers are naive, omitting the capacity of controllers and the value of the network. And we optimize these schemes to make them practical in real network environments. However, for the modified centralized schemes and the distributed schemes, there are still several problems to be solved in the future.
+
+\textbf{Flexible controller number} : In our scheme, we use a fixed number of controllers to monitor the whole network. Furthermore, we suppose that all controllers in the network have to be used. However, in real applications, the total traffic in the network may be far less then the total capacity of all the controllers, i.e., the system can run in a good condition using only a part of the controllers. Thus, a new scheme can be deployed to modify the number of active controllers as the load changes. This can save the energy and also decrease the complexity of calculating balancing strategies. Related researches are also done in the elastic distributed controller architecture \cite{elasticsdn}.
+
+\textbf{Hot controllers} : For a complex network, a controller may have a plenty of reachable switches. And in our SPCM-LBMC scheme, if the value of the link between this controller and its switches are high, this controller is very likely to become a hot spot in the end. Thus, to solve this problem, in future work, we intend to introduce a parameter to record the popularity of each controller. For those controller that has high popularity, we will decrease its link value to prevent it from being attached by many switches. Or we can define a probability according to  its popularity. Each switch obey this probability to connect to this controller. And if the popularity of the controllers are quite high, several controllers that have the same reachable switches as the hot controller can be added in the network to share its load.
+
+\textbf{Mixed structures} : For real applications, it may be impractical to deploy our centralized algorithms since the delivery of global information may be very hard for large DCN. However, for distributed schemes, we will meet a trouble when some of the controllers are down. Since controllers in distributed schemes can only get information of its nearby region, the breakdown of some controllers will cause local hot spots that will take a long time to disappear. Thus, a mixed structure is needed to solve the dilemma. In the mixed strategy such as in \cite{kandoo}, the network is devided into several regions, and there will be a centralized controller to monitor all the distributed controllers in each region. Every time a distributed controller is down, its centralized controller will notify all other centralized controllers, and then the system will take a special scheme to share the load of the breakdown controller quickly. All centralized controllers are connected and will communicate once in a while. This hierarchical structure will make the management of distributed controllers effective and easy.

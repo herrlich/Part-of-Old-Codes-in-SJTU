@@ -1,0 +1,70 @@
+#-------------------------------------------------------------------------------
+# Name:        module1
+# Purpose:
+#
+# Author:      admin
+#
+# Created:     13/09/2012
+# Copyright:   (c) admin 2012
+# Licence:     <your licence>
+#-------------------------------------------------------------------------------
+#!/usr/bin/env python
+
+# -*- coding: utf-8 -*-
+from BeautifulSoup import BeautifulSoup
+import urllib2
+import re
+import urlparse
+import os
+import urllib
+import socket
+import threading
+import Queue
+import time
+
+def renren_visit(email, password):
+    import urllib2, cookielib, urllib
+    from BeautifulSoup import BeautifulSoup
+    cj=cookielib.CookieJar()
+    opener=urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+    urllib2.install_opener(opener)
+    postdata=urllib.urlencode({'email':email,'password':password,'captcha_type':'web_login','icode':'','origURL':'http://www.renren.com/indexcon','domain':'renren.com','key_id':'1'})
+    req=urllib2.Request(url='http://www.renren.com/PLogin.do',data=postdata)
+    response = urllib2.urlopen(req)
+    newpostdata = urllib.urlencode({'id':'729595072','portal':'homeFootprint','ref':'home_footprint'})
+    newurl = 'http://www.renren.com/profile.do?portal=homeFootprint&ref=home_footprint&id=729595072?%s' % newpostdata
+    newresponse = urllib2.urlopen(newurl)
+    print "visit"+email
+
+def working():
+    visit_num=0
+    while visit_num<6:
+        to_visit = q.get()
+        renren_visit(to_visit,password)
+        visit_num+=1
+        print visit_num,q.empty()
+        if varLock.acquire():
+            varLock.release()
+            q.task_done()
+        else:
+            q.task_done()
+    while q.empty()==False:
+        q.get()
+        q.task_done()
+
+NUM = 1
+password='asdfghjkl'
+varLock = threading.Lock()
+q = Queue.Queue()
+q.put('thanatos0124@yeah.net')
+q.put('fliverse@163.com')
+q.put('363389820@qq.com')
+q.put('chrislune@163.com')
+q.put('qiaoxinsjtu@163.com')
+q.put('xiaotaosjtu@sina.cn')
+for i in range(NUM):
+    t=threading.Thread(target=working)
+    t.setDaemon(True)
+    t.start()
+q.join()
+print "That's all you want."

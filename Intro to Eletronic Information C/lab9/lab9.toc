@@ -1,0 +1,5 @@
+\contentsline {section}{\numberline {1}The Purpose of This Experiment}{1}
+\contentsline {section}{\numberline {2}The Main Part of the Experiment}{1}
+\contentsline {subsection}{\numberline {2.1}The method of KNN}{1}
+\contentsline {subsection}{\numberline {2.2}The method of LSH}{4}
+\contentsline {section}{\numberline {3}The Problems I Met and My Thoughts}{8}

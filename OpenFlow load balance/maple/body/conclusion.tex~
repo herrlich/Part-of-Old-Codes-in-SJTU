@@ -1,0 +1,10 @@
+%%==================================================
+%% conclusion.tex for SJTU Bachelor Thesis
+%% version: 0.5.2
+%% Encoding: UTF-8
+%%==================================================
+
+\chapter{Conclusion}
+\label{chap:conclusion}
+
+With the impressive development of the scale of DCN, it becomes very hard to use a centralized controller to manipulate the traffic flows in a DCN that deploys the OpenFlow protocol, thus leading to overloaded controllers and reduce the performance of the network. The emergence of devolved controllers provides us with innovate methods to address this scalability issue. In this paper, we use multiple controllers to solve the problem of load balancing. First we define the Load Balancing problem of Multiple Controllers (LBMC), and analyse the necessary conditions to solve this problem in real applications. Then we give the naive centralized migration scheme and the distributed migration scheme, where controllers have no limits. However, in real world environments, each controller has a capacity limit, and switches may also have different priorities. Thus we established a load balancing model with capacity limits and values of OpenFlow network, and raised an algorithm to maximize the value as well as minimize the difference on ultilization ratio. By implementing all above algorthms and doing simulations, we prove the effectiveness of the algorithms, and also prove the possibity of deploying these algorithms in real software defined networks. We then present several optimizations that can be done in the future to improve the performance of our algorithms. This paper is inspired by several works of predecessors, and manages to optimize their schemes for real applications.

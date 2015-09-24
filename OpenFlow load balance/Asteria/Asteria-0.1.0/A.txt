@@ -1,0 +1,1 @@
+这个版本在最开始的局部分配switch的时候并没有按序号从小到大进行分配，而是shuffle了数组，即采用随机选取switch的方法对controller进行分配
